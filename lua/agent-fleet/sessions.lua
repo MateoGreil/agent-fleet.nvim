@@ -90,4 +90,70 @@ function M.list(cwd, sessions_dir)
   return entries
 end
 
+local CHUNK = 16384
+
+local function message_state(decoded)
+  local message = decoded.message
+  if type(message) ~= "table" then
+    return "working"
+  end
+  if message.role == "assistant" then
+    local reason = message.stopReason
+    if reason == "toolUse" then
+      return "working"
+    elseif reason == "aborted" then
+      return "stopped"
+    elseif reason == "error" then
+      return "error"
+    end
+    return "idle"
+  end
+  return "working"
+end
+
+function M.tail_info(file)
+  if not file then
+    return nil
+  end
+  local fd = io.open(file, "rb")
+  if not fd then
+    return nil
+  end
+  local size = fd:seek("end")
+  local start = math.max(0, size - CHUNK)
+  fd:seek("set", start)
+  local chunk = fd:read("*a") or ""
+  fd:close()
+
+  local lines = vim.split(chunk, "\n", { plain = true })
+  if start > 0 and #lines > 0 then
+    table.remove(lines, 1)
+  end
+
+  local last_activity = nil
+  local state = nil
+  for i = #lines, 1, -1 do
+    local line = lines[i]
+    if line ~= "" then
+      local ok, decoded = pcall(vim.json.decode, line)
+      if ok and type(decoded) == "table" then
+        if not last_activity and type(decoded.timestamp) == "string" then
+          last_activity = parse_iso_ms(decoded.timestamp)
+        end
+        if not state and decoded.type == "message" then
+          state = message_state(decoded)
+        end
+      end
+    end
+    if last_activity and state then
+      break
+    end
+  end
+
+  return {
+    state = state or "new",
+    last_activity = last_activity or mtime_ms(file),
+  }
+end
+
 return M

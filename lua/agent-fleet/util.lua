@@ -14,6 +14,21 @@ local function fallback_uuid()
   end))
 end
 
+function M.relative_time(ms, now_ms)
+  local diff = math.max(0, now_ms - ms)
+  local s = diff / 1000
+  if s < 60 then
+    return "now"
+  elseif s < 3600 then
+    return string.format("%dm", math.floor(s / 60))
+  elseif s < 86400 then
+    return string.format("%dh", math.floor(s / 3600))
+  elseif s < 604800 then
+    return string.format("%dd", math.floor(s / 86400))
+  end
+  return string.format("%dw", math.floor(s / 604800))
+end
+
 function M.uuid()
   if vim.fn.executable("uuidgen") == 1 then
     local raw = vim.fn.system("uuidgen")
