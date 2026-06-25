@@ -5,8 +5,8 @@ M.defaults = {
   -- pi's inline rendering stays in the buffer and nvim scrollback/yank work.
   pi_cmd = "pi",
   -- Ex command that opens the agent window before it becomes a terminal.
-  -- "botright vnew" = vertical split on the right; "botright new" = horizontal.
-  window = "botright vnew",
+  -- "enew" = current window; "botright vnew" = vertical split on the right.
+  window = "enew",
   -- Drop straight into terminal insert mode after launching.
   start_insert = true,
 }

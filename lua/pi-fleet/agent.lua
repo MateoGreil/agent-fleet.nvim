@@ -6,7 +6,7 @@ local M = {}
 M.agents = {}
 M._seq = 0
 
---- Launch a pi agent in a native terminal in a new split.
+--- Launch a pi agent in a native terminal in the current window.
 --- @param opts table|nil { name?: string, cwd?: string }
 --- @return table|nil agent
 function M.launch(opts)

@@ -21,7 +21,7 @@ keybindings** — the thing PTY-attach dashboards take away from you.
 
 Built incrementally, feature by feature. Done so far:
 
-- **[x] Launch** — `:PiAgent [name]` opens the real `pi` in a terminal split.
+- **[x] Launch** — `:PiAgent [name]` opens the real `pi` in a terminal in the current window.
 
 Roadmap:
 
@@ -45,7 +45,7 @@ yank with your usual nvim keys. `i` / `a` to type to pi again.
 ```lua
 require("pi-fleet").setup({
   pi_cmd = "pi",
-  window = "botright vnew", -- "botright new" for a horizontal split
+  window = "enew", -- "botright vnew" for a vertical split instead
   start_insert = true,
 })
 ```
