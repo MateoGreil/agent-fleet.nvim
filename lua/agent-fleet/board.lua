@@ -57,7 +57,7 @@ function M.rows(opts)
 
     local is_live = false
     local bufnr = nil
-    if live_entry and vim.api.nvim_buf_is_valid(live_entry.bufnr) then
+    if live_entry and live_entry.bufnr and vim.api.nvim_buf_is_valid(live_entry.bufnr) then
       is_live = true
       bufnr = live_entry.bufnr
     end
