@@ -2,9 +2,21 @@ local config = require("agent-fleet.config")
 
 local M = {}
 
--- id -> { id, name, agent, cmd, bufnr, job, cwd }
+-- id -> { id, name, agent, cmd, bufnr, job, cwd, session_id }
 M.agents = {}
 M._seq = 0
+
+--- Build an argv list from a command string and an extra-args list.
+--- @param cmd string
+--- @param extra string[]|nil
+--- @return string[]
+function M.build_argv(cmd, extra)
+  local argv = vim.split(cmd, " ", { trimempty = true })
+  for _, arg in ipairs(extra or {}) do
+    argv[#argv + 1] = arg
+  end
+  return argv
+end
 
 --- Launch a coding agent in a native terminal in the current window.
 --- @param opts table|nil { agent?: string, name?: string, cwd?: string }
@@ -26,16 +38,27 @@ function M.launch(opts)
   local id = M._seq
   local name = opts.name or (kind .. "-" .. id)
 
+  local session_id = nil
+  local extra = {}
+  if def.session then
+    session_id = require("agent-fleet.util").uuid()
+    extra = { def.session.id_flag, session_id, def.session.name_flag, name }
+  end
+
   vim.cmd(cfg.window)
   local bufnr = vim.api.nvim_get_current_buf()
 
-  local job = vim.fn.jobstart(def.cmd, { term = true, cwd = cwd })
+  local job = vim.fn.jobstart(M.build_argv(def.cmd, extra), { term = true, cwd = cwd })
   if job <= 0 then
     vim.notify("agent-fleet: failed to launch '" .. def.cmd .. "'", vim.log.levels.ERROR)
     return nil
   end
 
-  local agent = { id = id, name = name, agent = kind, cmd = def.cmd, bufnr = bufnr, job = job, cwd = cwd }
+  if session_id then
+    require("agent-fleet.roster").add({ id = session_id, type = kind, name = name, cwd = cwd })
+  end
+
+  local agent = { id = id, name = name, agent = kind, cmd = def.cmd, bufnr = bufnr, job = job, cwd = cwd, session_id = session_id }
   M.agents[id] = agent
   vim.b[bufnr].agent_fleet = { id = id, name = name, agent = kind }
   pcall(vim.api.nvim_buf_set_name, bufnr, "agent:" .. name)

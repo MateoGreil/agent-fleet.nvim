@@ -7,7 +7,10 @@ M.defaults = {
   -- native nvim terminal, so an inline-rendering CLI keeps its whole
   -- transcript in the buffer and nvim scrollback/yank work.
   agents = {
-    pi = { cmd = "pi" },
+    pi = {
+      cmd = "pi",
+      session = { id_flag = "--session-id", name_flag = "--name", resume_flag = "--session" },
+    },
     claude = { cmd = "claude" },
   },
   -- Ex command that opens the agent window before it becomes a terminal.
