@@ -43,6 +43,15 @@ check("set_name missing returns nil", r.set_name("nope", "y") == nil)
 check("mark_done missing returns nil", r.mark_done("nope") == nil)
 check("set_archived missing returns nil", r.set_archived("nope", true) == nil)
 
+-- ensure: creates when absent, never overwrites an existing entry.
+r.ensure({ id = "ens1", type = "pi", name = "ensured", cwd = "/pe" })
+check("ensure creates when absent", r.get("ens1") ~= nil and r.get("ens1").name == "ensured")
+r.mark_done("ens1")
+r.ensure({ id = "ens1", type = "pi", name = "clobber", cwd = "/pe" })
+check("ensure does not overwrite name", r.get("ens1").name == "ensured")
+check("ensure does not clear done", r.get("ens1").done == true)
+check("ensure returns existing entry", r.ensure({ id = "ens1", name = "x" }).name == "ensured")
+
 package.loaded["agent-fleet.roster"] = nil
 local r2 = require("agent-fleet.roster")
 check("persisted across reload", r2.get("aaa") ~= nil and r2.get("bbb") ~= nil)

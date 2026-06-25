@@ -71,6 +71,14 @@ function M.add(entry)
   return entry
 end
 
+function M.ensure(entry)
+  local existing = M.get(entry.id)
+  if existing then
+    return existing
+  end
+  return M.add(entry)
+end
+
 function M.get(id)
   local _, entry = find(M.load(), id)
   return entry

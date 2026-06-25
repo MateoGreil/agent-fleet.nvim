@@ -68,13 +68,15 @@ vim.api.nvim_create_user_command("AgentDone", function()
   end
   vim.ui.select(cands, {
     prompt = "Mark done",
-    format_item = function(e)
-      return e.name
+    format_item = function(row)
+      return (row.live and "\u{25cf} " or "\u{25cb} ") .. row.name
     end,
-  }, function(choice)
-    if choice then
-      require("agent-fleet.roster").mark_done(choice.id)
-      vim.notify("agent-fleet: marked done \u{2014} " .. choice.name, vim.log.levels.INFO)
+  }, function(row)
+    if row then
+      local roster = require("agent-fleet.roster")
+      roster.ensure({ id = row.id, type = "pi", name = row.name, cwd = row.cwd })
+      roster.mark_done(row.id)
+      vim.notify("agent-fleet: marked done \u{2014} " .. row.name, vim.log.levels.INFO)
     end
   end)
 end, { desc = "agent-fleet: mark a past agent done (current directory)" })
@@ -87,15 +89,17 @@ vim.api.nvim_create_user_command("AgentArchive", function()
   end
   vim.ui.select(cands, {
     prompt = "Archive / unarchive",
-    format_item = function(e)
-      return (e.archived and "[archived] " or "") .. e.name
+    format_item = function(row)
+      return (row.archived and "[archived] " or "") .. row.name
     end,
-  }, function(choice)
-    if choice then
-      local now = not choice.archived
-      require("agent-fleet.roster").set_archived(choice.id, now)
+  }, function(row)
+    if row then
+      local roster = require("agent-fleet.roster")
+      roster.ensure({ id = row.id, type = "pi", name = row.name, cwd = row.cwd })
+      local now = not row.archived
+      roster.set_archived(row.id, now)
       vim.notify(
-        ("agent-fleet: %s \u{2014} %s"):format(now and "archived" or "unarchived", choice.name),
+        ("agent-fleet: %s \u{2014} %s"):format(now and "archived" or "unarchived", row.name),
         vim.log.levels.INFO
       )
     end
