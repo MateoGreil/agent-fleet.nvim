@@ -42,4 +42,27 @@ function M.archive(row)
   return now
 end
 
+function M.rename(row, new_name)
+  if new_name == nil or new_name == "" then
+    return
+  end
+  local roster = require("agent-fleet.roster")
+  roster.ensure({ id = row.id, type = row.type or "pi", name = row.name, cwd = row.cwd })
+  roster.set_name(row.id, new_name)
+
+  if row.live and row.bufnr and vim.api.nvim_buf_is_valid(row.bufnr) then
+    for _, a in pairs(require("agent-fleet.agent").agents) do
+      if a.session_id == row.id then
+        a.name = new_name
+      end
+    end
+    local meta = vim.b[row.bufnr].agent_fleet
+    if type(meta) == "table" then
+      meta.name = new_name
+      vim.b[row.bufnr].agent_fleet = meta
+    end
+    pcall(vim.api.nvim_buf_set_name, row.bufnr, "agent:" .. new_name)
+  end
+end
+
 return M

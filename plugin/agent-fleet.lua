@@ -107,3 +107,53 @@ vim.api.nvim_create_user_command("AgentArchive", function()
     end
   end)
 end, { desc = "agent-fleet: archive / unarchive a past agent (current directory)" })
+
+vim.api.nvim_create_user_command("AgentRename", function(opts)
+  local actions = require("agent-fleet.actions")
+
+  local function apply(target, name)
+    actions.rename(target, name)
+    vim.notify(("agent-fleet: renamed \u{2014} %s"):format(name), vim.log.levels.INFO)
+  end
+
+  local function prompt(target)
+    vim.ui.input({ prompt = "Rename agent: ", default = target.name }, function(input)
+      input = input and vim.trim(input)
+      if input and input ~= "" then
+        apply(target, input)
+      elseif input == "" then
+        vim.notify("agent-fleet: rename cancelled (empty name)", vim.log.levels.INFO)
+      end
+    end)
+  end
+
+  local row = actions.current_row()
+  if row then
+    local name = vim.trim(opts.args)
+    if name ~= "" then
+      apply(row, name)
+    else
+      prompt(row)
+    end
+    return
+  end
+
+  local cands = require("agent-fleet.board").archive_candidates(vim.fn.getcwd())
+  if #cands == 0 then
+    vim.notify("agent-fleet: no agent to rename", vim.log.levels.INFO)
+    return
+  end
+  vim.ui.select(cands, {
+    prompt = "Rename",
+    format_item = function(r)
+      return (r.archived and "[archived] " or "") .. (r.live and "\u{25cf} " or "\u{25cb} ") .. r.name
+    end,
+  }, function(chosen)
+    if chosen then
+      prompt(chosen)
+    end
+  end)
+end, {
+  nargs = "*",
+  desc = "agent-fleet: rename an agent (current buffer or picker)",
+})

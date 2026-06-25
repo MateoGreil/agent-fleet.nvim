@@ -78,5 +78,29 @@ check("archive returns false when unarchiving", res2 == false)
 check("unarchive clears archived", roster.get(id_un) ~= nil and roster.get(id_un).archived == false)
 check("unarchive keeps buffer", vim.api.nvim_buf_is_valid(buf_un) == true)
 
+-- rename: not-yet-rostered live row -> rosters + updates live state, buffer var, buffer name
+local id_ren = "rrrrrrrr-rrrr-rrrr-rrrr-rrrrrrrrrr01"
+local buf_ren = make_term()
+agent.agents[31] = { session_id = id_ren, bufnr = buf_ren, cwd = "/proj/r", name = "old" }
+vim.b[buf_ren].agent_fleet = { id = 31 }
+check("rename not rostered before", roster.get(id_ren) == nil)
+actions.rename({ id = id_ren, name = "old", cwd = "/proj/r", live = true, bufnr = buf_ren }, "new name")
+check("rename materializes roster with new name", roster.get(id_ren) ~= nil and roster.get(id_ren).name == "new name")
+check("rename updates live agent name", agent.agents[31].name == "new name")
+check("rename updates buffer var name", vim.b[buf_ren].agent_fleet ~= nil and vim.b[buf_ren].agent_fleet.name == "new name")
+check("rename renames buffer", vim.endswith(vim.api.nvim_buf_get_name(buf_ren), "agent:new name"))
+
+-- rename: dead (non-live) row -> roster name updated, no error
+local id_ren2 = "rrrrrrrr-rrrr-rrrr-rrrr-rrrrrrrrrr02"
+roster.add({ id = id_ren2, type = "pi", name = "old2", cwd = "/proj/r" })
+actions.rename({ id = id_ren2, name = "old2", cwd = "/proj/r", live = false }, "new2")
+check("rename dead row updates roster name", roster.get(id_ren2) ~= nil and roster.get(id_ren2).name == "new2")
+
+-- rename: empty / nil new name is a no-op (no change, no error)
+actions.rename({ id = id_ren, name = "new name", cwd = "/proj/r", live = true, bufnr = buf_ren }, "")
+check("rename empty name no-op", roster.get(id_ren).name == "new name")
+actions.rename({ id = id_ren, name = "new name", cwd = "/proj/r", live = true, bufnr = buf_ren }, nil)
+check("rename nil name no-op", roster.get(id_ren).name == "new name")
+
 vim.fn.writefile(out, os.getenv("AGENT_FLEET_TEST_OUT"))
 vim.cmd("qa!")

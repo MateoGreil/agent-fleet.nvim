@@ -37,8 +37,11 @@ Built incrementally, feature by feature. Done so far:
   (live ones in this nvim merged with this cwd's pi sessions on disk, deduped by
   session id) and switches to the chosen one — focus if live, else resume.
   `:AgentDone` marks an agent done (✓); `:AgentArchive` toggles archive (hidden
-  by default). Soft archive only — never deletes a session file. Status is just
-  live vs not for now (rich `working`/`needs_input` is the next item).
+  by default). Soft archive only — never deletes a session file. `:AgentRename`
+  renames an agent (the current agent's buffer, or a picked one). `:AgentDone` /
+  `:AgentArchive` also act on the current agent's buffer, closing (killing) its
+  terminal when live. Status is just live vs not for now (rich
+  `working`/`needs_input` is the next item).
 
 Roadmap:
 
@@ -67,7 +70,7 @@ Roadmap:
   not just pi. Today only pi is fully supported end-to-end.
 - **[ ] Claude & other agents resume** — extend persistence/resume beyond pi
   (`claude --resume`), incl. discovering their sessions. pi-only at first.
-- **[ ] Lifecycle** — rename, stop, land changes.
+- **[ ] Lifecycle** — stop, land changes.
 
 ## Usage
 
@@ -78,6 +81,8 @@ Roadmap:
 :Agents          " list & switch agents of this directory (focus if live, else resume)
 :AgentDone       " mark an agent done (✓)
 :AgentArchive    " archive / unarchive an agent (hidden from :Agents by default)
+:AgentRename foo " rename the current agent (or pick one) to "foo"
+:AgentRename     " rename via a prompt (current agent, or pick one)
 ```
 
 Inside an agent terminal: `<C-\><C-n>` to enter Normal mode, then move / scroll /
