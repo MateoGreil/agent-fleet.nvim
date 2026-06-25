@@ -26,13 +26,14 @@ own nvim keybindings** — the thing PTY-attach dashboards take away from you.
 Built incrementally, feature by feature. Done so far:
 
 - **[x] Launch** — `:Agent [type]` opens an agent CLI in a terminal in the current window.
+- **[x] Persistence & resume** — a roster on disk (`id → {type, name, cwd, …}`);
+  `:Agent` assigns each pi agent a `--session-id <uuid>` + `--name` at launch and
+  records it. `:AgentResume` reopens a past agent of the current directory —
+  focusing its live buffer if still running, else relaunching `pi --session
+  <id>` in its original cwd (never touching the session file).
 
 Roadmap:
 
-- **[ ] Persistence & resume** — the data layer + resume mechanism. A roster on
-  disk (`id → {type, name, cwd, …}`); `:Agent` assigns a `--session-id <uuid>`
-  at launch and records it. Resuming a session = relaunching `pi --session-id
-  <id>` in its cwd. No UI yet; the foundation List & switch builds on.
 - **[ ] List & switch** — the board UI on top: `:Agents` picker showing the
   agents of the **current directory** (live ones in this nvim + this cwd's
   sessions on disk) with status; select to switch (focus the live buffer) or
@@ -67,6 +68,7 @@ Roadmap:
 ```vim
 :Agent           " launch the default agent in the current working directory
 :Agent claude    " launch a specific configured agent (Tab-completes)
+:AgentResume     " reopen a past agent of this directory (focus if live, else resume)
 ```
 
 Inside an agent terminal: `<C-\><C-n>` to enter Normal mode, then move / scroll /
