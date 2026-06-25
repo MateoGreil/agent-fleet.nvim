@@ -58,6 +58,7 @@ function M.add(entry)
   end
   entry.done = entry.done or false
   entry.archived = entry.archived or false
+  entry.auto_named = entry.auto_named or false
   entry.created_at = entry.created_at or now_ms()
 
   local roster = M.load()
@@ -110,6 +111,12 @@ end
 function M.set_archived(id, archived)
   return update(id, function(entry)
     entry.archived = archived
+  end)
+end
+
+function M.set_auto_named(id, value)
+  return update(id, function(entry)
+    entry.auto_named = value
   end)
 end
 

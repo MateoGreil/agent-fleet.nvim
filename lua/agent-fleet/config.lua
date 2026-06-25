@@ -20,6 +20,15 @@ M.defaults = {
   start_insert = true,
   -- Base directory scanned to locate pi session files for resume.
   sessions_dir = vim.fn.expand("~/.pi/agent/sessions"),
+  -- Opt-in background auto-rename for agents launched without a name.
+  auto_name = {
+    enabled = false,
+    thinking = "off",
+    poll_interval_ms = 3000,
+    poll_timeout_ms = 120000,
+    namer_timeout_ms = 30000,
+    max_chars = 2000,
+  },
 }
 
 M.options = {}

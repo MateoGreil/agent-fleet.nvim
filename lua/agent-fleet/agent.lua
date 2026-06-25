@@ -2,7 +2,7 @@ local config = require("agent-fleet.config")
 
 local M = {}
 
--- id -> { id, name, agent, cmd, bufnr, job, cwd, session_id }
+-- id -> { id, name, agent, cmd, bufnr, job, cwd, session_id, auto_named }
 M.agents = {}
 M._seq = 0
 
@@ -21,7 +21,7 @@ end
 --- Open a terminal for argv, register it, and wire cleanup.
 --- @param argv string[]
 --- @param cwd string
---- @param meta table { id, name, kind, cmd, session_id }
+--- @param meta table { id, name, kind, cmd, session_id, auto_named }
 --- @return table|nil agent
 local function spawn(argv, cwd, meta)
   local cfg = config.get()
@@ -44,6 +44,7 @@ local function spawn(argv, cwd, meta)
     job = job,
     cwd = cwd,
     session_id = meta.session_id,
+    auto_named = meta.auto_named,
   }
   M.agents[meta.id] = agent
   vim.b[bufnr].agent_fleet = { id = meta.id, name = meta.name, agent = meta.kind }
@@ -83,6 +84,7 @@ function M.launch(opts)
 
   M._seq = M._seq + 1
   local id = M._seq
+  local auto_named = opts.name == nil
   local name = opts.name or (kind .. "-" .. id)
 
   local session_id = nil
@@ -95,14 +97,14 @@ function M.launch(opts)
   local agent = spawn(
     M.build_argv(def.cmd, extra),
     cwd,
-    { id = id, name = name, kind = kind, cmd = def.cmd, session_id = session_id }
+    { id = id, name = name, kind = kind, cmd = def.cmd, session_id = session_id, auto_named = auto_named }
   )
   if not agent then
     return nil
   end
 
   if session_id then
-    require("agent-fleet.roster").add({ id = session_id, type = kind, name = name, cwd = cwd })
+    require("agent-fleet.roster").add({ id = session_id, type = kind, name = name, cwd = cwd, auto_named = auto_named })
   end
 
   return agent
