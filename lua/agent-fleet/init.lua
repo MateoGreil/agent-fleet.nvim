@@ -12,4 +12,8 @@ function M.list()
   return require("agent-fleet.agent").list()
 end
 
+function M.resume(id)
+  return require("agent-fleet.agent").resume(id)
+end
+
 return M

@@ -18,6 +18,8 @@ M.defaults = {
   window = "enew",
   -- Drop straight into terminal insert mode after launching.
   start_insert = true,
+  -- Base directory scanned to locate pi session files for resume.
+  sessions_dir = vim.fn.expand("~/.pi/agent/sessions"),
 }
 
 M.options = {}

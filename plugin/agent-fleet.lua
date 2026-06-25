@@ -20,3 +20,22 @@ end, {
   end,
   desc = "agent-fleet: launch a coding agent in a terminal",
 })
+
+vim.api.nvim_create_user_command("AgentResume", function()
+  local roster = require("agent-fleet.roster")
+  local entries = roster.list({ cwd = vim.fn.getcwd() })
+  if #entries == 0 then
+    vim.notify("agent-fleet: no agents for this directory", vim.log.levels.INFO)
+    return
+  end
+  vim.ui.select(entries, {
+    prompt = "Resume agent",
+    format_item = function(e)
+      return e.name .. (e.done and "  ✓" or "")
+    end,
+  }, function(choice)
+    if choice then
+      require("agent-fleet").resume(choice.id)
+    end
+  end)
+end, { desc = "agent-fleet: resume a past agent (current directory)" })
