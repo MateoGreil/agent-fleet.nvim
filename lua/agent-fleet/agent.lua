@@ -38,6 +38,7 @@ function M.launch(opts)
   local agent = { id = id, name = name, agent = kind, cmd = def.cmd, bufnr = bufnr, job = job, cwd = cwd }
   M.agents[id] = agent
   vim.b[bufnr].agent_fleet = { id = id, name = name, agent = kind }
+  pcall(vim.api.nvim_buf_set_name, bufnr, "agent:" .. name)
 
   vim.api.nvim_create_autocmd({ "BufWipeout", "TermClose" }, {
     buffer = bufnr,
