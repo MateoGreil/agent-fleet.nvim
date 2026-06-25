@@ -29,21 +29,34 @@ Built incrementally, feature by feature. Done so far:
 
 Roadmap:
 
-- **[ ] Persistence & resume** — persist agent metadata (type, name, cwd,
-  session id) so quitting nvim and coming back relaunches each agent resuming
-  its session. We assign the id at launch (`pi --session-id <uuid>`, `claude
-  --resume`), so resuming is just relaunching with the same id.
+- **[ ] Persistence & resume** — the data layer + resume mechanism. A roster on
+  disk (`id → {type, name, cwd, …}`); `:Agent` assigns a `--session-id <uuid>`
+  at launch and records it. Resuming a session = relaunching `pi --session-id
+  <id>` in its cwd. No UI yet; the foundation List & switch builds on.
+- **[ ] List & switch** — the board UI on top: `:Agents` picker showing every
+  known agent (live ones in this nvim + sessions on disk) with status; select to
+  switch (focus the live buffer) or resume (relaunch by session id). Plus
+  `:AgentDone` / `:AgentArchive` (soft archive — never deletes a session file).
+- **[ ] Auto-restore** — optional `VimEnter` behavior to relaunch the agents
+  that were live when you quit. Off by default (manual resume from the board is
+  the better default); a config flag on top of the roster.
+- **[ ] Live agent state** — derive `working` / `needs_input` / `idle` for live
+  agents by tailing their session `.jsonl` (v1 shows live = `running`, dead =
+  `unknown`). Later: derive a final state for dead sessions too.
+- **[ ] UI board** — a dedicated board buffer with per-row keybindings
+  (`<CR>` switch, `d` archive, `D` done) inspired by pi-agent-board, replacing
+  the `vim.ui.select` picker.
 - **[ ] Detached background mode (opt-in)** — when enabled, agents run under a
   PTY detacher (`abduco`/`dtach`) so closing nvim detaches them (they keep
   working) and reopening re-attaches them into buffers. Off by default to keep
   the pure-native terminal behavior; full transcript still comes from the
   session file.
-- **[ ] List & switch** — picker of running agents with status.
 - **[ ] (later) Worktree-aware** — agent-fleet never *creates* worktrees (that's
   the agent's job), but could later *discover* them via `git worktree list` to
   show in the picker and offer cleanup. Low priority.
-- **[ ] UI** — a nice board view (inspired by pi-agent-board).
-- **[ ] Lifecycle** — rename, stop, clean up worktree, land changes.
+- **[ ] Claude & other agents resume** — extend persistence/resume beyond pi
+  (`claude --resume`), incl. discovering their sessions. pi-only at first.
+- **[ ] Lifecycle** — rename, stop, land changes.
 
 ## Usage
 
