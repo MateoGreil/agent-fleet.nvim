@@ -51,6 +51,13 @@ vim.api.nvim_create_user_command("Agents", function()
 end, { desc = "agent-fleet: list & switch agents of the current directory" })
 
 vim.api.nvim_create_user_command("AgentDone", function()
+  local actions = require("agent-fleet.actions")
+  local row = actions.current_row()
+  if row then
+    actions.done(row)
+    vim.notify("agent-fleet: marked done \u{2014} " .. row.name, vim.log.levels.INFO)
+    return
+  end
   local cands = require("agent-fleet.board").done_candidates(vim.fn.getcwd())
   if #cands == 0 then
     vim.notify("agent-fleet: no agent to mark done", vim.log.levels.INFO)
@@ -61,17 +68,25 @@ vim.api.nvim_create_user_command("AgentDone", function()
     format_item = function(row)
       return (row.live and "\u{25cf} " or "\u{25cb} ") .. row.name
     end,
-  }, function(row)
-    if row then
-      local roster = require("agent-fleet.roster")
-      roster.ensure({ id = row.id, type = "pi", name = row.name, cwd = row.cwd })
-      roster.mark_done(row.id)
-      vim.notify("agent-fleet: marked done \u{2014} " .. row.name, vim.log.levels.INFO)
+  }, function(chosen)
+    if chosen then
+      actions.done(chosen)
+      vim.notify("agent-fleet: marked done \u{2014} " .. chosen.name, vim.log.levels.INFO)
     end
   end)
 end, { desc = "agent-fleet: mark a past agent done (current directory)" })
 
 vim.api.nvim_create_user_command("AgentArchive", function()
+  local actions = require("agent-fleet.actions")
+  local row = actions.current_row()
+  if row then
+    local now = actions.archive(row)
+    vim.notify(
+      ("agent-fleet: %s \u{2014} %s"):format(now and "archived" or "unarchived", row.name),
+      vim.log.levels.INFO
+    )
+    return
+  end
   local cands = require("agent-fleet.board").archive_candidates(vim.fn.getcwd())
   if #cands == 0 then
     vim.notify("agent-fleet: no agent to archive", vim.log.levels.INFO)
@@ -82,14 +97,11 @@ vim.api.nvim_create_user_command("AgentArchive", function()
     format_item = function(row)
       return (row.archived and "[archived] " or "") .. row.name
     end,
-  }, function(row)
-    if row then
-      local roster = require("agent-fleet.roster")
-      roster.ensure({ id = row.id, type = "pi", name = row.name, cwd = row.cwd })
-      local now = not row.archived
-      roster.set_archived(row.id, now)
+  }, function(chosen)
+    if chosen then
+      local now = actions.archive(chosen)
       vim.notify(
-        ("agent-fleet: %s \u{2014} %s"):format(now and "archived" or "unarchived", row.name),
+        ("agent-fleet: %s \u{2014} %s"):format(now and "archived" or "unarchived", chosen.name),
         vim.log.levels.INFO
       )
     end
