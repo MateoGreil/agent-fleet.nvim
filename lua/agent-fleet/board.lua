@@ -82,6 +82,16 @@ function M.rows(opts)
     end
 
     if include_archived or not archived then
+      local file = disk_entry and disk_entry.file or nil
+      local state = "new"
+      local last_activity = created_at
+      if file then
+        local info = require("agent-fleet.sessions").tail_info(file)
+        if info then
+          state = info.state
+          last_activity = info.last_activity
+        end
+      end
       rows[#rows + 1] = {
         id = id,
         name = name,
@@ -90,8 +100,10 @@ function M.rows(opts)
         bufnr = bufnr,
         done = done,
         archived = archived,
-        file = disk_entry and disk_entry.file or nil,
+        file = file,
         created_at = created_at,
+        state = state,
+        last_activity = last_activity,
       }
     end
   end
@@ -106,10 +118,27 @@ function M.rows(opts)
     if a.live ~= b.live then
       return a.live
     end
-    return a.created_at < b.created_at
+    return a.last_activity > b.last_activity
   end)
 
   return rows
+end
+
+function M.format_row(row, now_ms)
+  now_ms = now_ms or (os.time() * 1000)
+  local prefix = row.archived and "[archived] " or ""
+  local marker = row.live and "\u{25cf}" or "\u{25cb}"
+  local state = row.state or "new"
+  local state_col = state .. string.rep(" ", math.max(0, 8 - #state))
+  local name = row.name
+  if #name > 22 then
+    name = name:sub(1, 21) .. "\u{2026}"
+  end
+  local time = require("agent-fleet.util").relative_time(row.last_activity or 0, now_ms)
+  local suffix = row.done and "  \u{2713}" or ""
+  return prefix
+    .. string.format("%s  %s  %s  \u{00b7}  %s", marker, state_col, name, time)
+    .. suffix
 end
 
 function M.done_candidates(cwd)

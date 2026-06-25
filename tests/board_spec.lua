@@ -4,6 +4,7 @@ local board = require("agent-fleet.board")
 local roster = require("agent-fleet.roster")
 local sessions = require("agent-fleet.sessions")
 local agent = require("agent-fleet.agent")
+local util = require("agent-fleet.util")
 
 local out = {}
 local function check(name, cond)
@@ -33,6 +34,33 @@ local function write_session(cwd, id, ts)
     cwd
   )
   vim.fn.writefile({ header }, file)
+  return file
+end
+
+local function msg(ts, role, stop_reason)
+  local m = { role = role }
+  if stop_reason then
+    m.stopReason = stop_reason
+  end
+  return vim.json.encode({ type = "message", timestamp = ts, message = m })
+end
+
+local function write_session_events(cwd, id, ts, events)
+  local dir = TMP .. "/" .. sessions.cwd_slug(cwd)
+  vim.fn.mkdir(dir, "p")
+  local file = dir .. "/" .. ts .. "_" .. id .. ".jsonl"
+  local lines = {
+    string.format(
+      '{"type":"session","version":3,"id":"%s","timestamp":"%s","cwd":"%s"}',
+      id,
+      ts,
+      cwd
+    ),
+  }
+  for _, e in ipairs(events) do
+    lines[#lines + 1] = e
+  end
+  vim.fn.writefile(lines, file)
   return file
 end
 
@@ -123,6 +151,110 @@ write_session(COther, id_other_disk, "2026-06-06T00:00:00.000Z")
 local rows6 = board.rows({ cwd = CMain, sessions_dir = TMP, include_archived = true })
 check("case6 other roster excluded", find_row(rows6, id_other_roster) == nil)
 check("case6 other disk excluded", find_row(rows6, id_other_disk) == nil)
+
+-- Case 7: rows carry derived state + last_activity
+local C7 = "/proj/c7"
+local id7s = "77777777-7777-7777-7777-777777777771"
+write_session_events(C7, id7s, "2026-07-01T00:00:00.000Z", {
+  msg("2026-07-01T00:05:00.000Z", "assistant", "stop"),
+})
+local id7n = "77777777-7777-7777-7777-777777777772"
+roster.add({ id = id7n, type = "pi", name = "no-file", cwd = C7 })
+local rows7 = board.rows({ cwd = C7, sessions_dir = TMP })
+local r7s = find_row(rows7, id7s)
+local r7n = find_row(rows7, id7n)
+check("case7 disk row state idle", r7s ~= nil and r7s.state == "idle")
+check(
+  "case7 disk row last_activity positive number",
+  r7s ~= nil and type(r7s.last_activity) == "number" and r7s.last_activity > 0
+)
+check("case7 no-file row state new", r7n ~= nil and r7n.state == "new")
+check("case7 no-file row file nil", r7n ~= nil and r7n.file == nil)
+check(
+  "case7 no-file row last_activity == created_at",
+  r7n ~= nil and r7n.last_activity == r7n.created_at
+)
+
+-- Case 8: sort by last_activity desc (within the same group)
+local C8 = "/proj/c8"
+local id8_old = "88888888-8888-8888-8888-888888888881"
+local id8_new = "88888888-8888-8888-8888-888888888882"
+write_session_events(C8, id8_old, "2026-08-01T00:00:00.000Z", {
+  msg("2026-08-01T00:10:00.000Z", "assistant", "stop"),
+})
+write_session_events(C8, id8_new, "2026-08-02T00:00:00.000Z", {
+  msg("2026-08-09T00:00:00.000Z", "assistant", "stop"),
+})
+local rows8 = board.rows({ cwd = C8, sessions_dir = TMP })
+local idx_old, idx_new
+for i, row in ipairs(rows8) do
+  if row.id == id8_old then
+    idx_old = i
+  elseif row.id == id8_new then
+    idx_new = i
+  end
+end
+check(
+  "case8 more recently active sorts first",
+  idx_old ~= nil and idx_new ~= nil and idx_new < idx_old
+)
+
+-- Case 9: format_row rich one-line rendering
+local NOW = 2000000000 * 1000
+local row_live = {
+  id = "f1",
+  name = "my-agent",
+  cwd = "/p",
+  live = true,
+  done = false,
+  archived = false,
+  state = "idle",
+  last_activity = NOW - 5 * 60 * 1000,
+}
+local s_live = board.format_row(row_live, NOW)
+check("case9 contains state word", s_live:find("idle", 1, true) ~= nil)
+check("case9 contains name", s_live:find("my-agent", 1, true) ~= nil)
+check(
+  "case9 contains relative time",
+  s_live:find(util.relative_time(row_live.last_activity, NOW), 1, true) ~= nil
+)
+check("case9 live marker", s_live:find("\u{25cf}", 1, true) ~= nil)
+check("case9 no checkmark when not done", s_live:find("\u{2713}", 1, true) == nil)
+check("case9 no archived prefix", s_live:sub(1, #"[archived]") ~= "[archived]")
+
+local row_da = {
+  id = "f2",
+  name = "older",
+  cwd = "/p",
+  live = false,
+  done = true,
+  archived = true,
+  state = "stopped",
+  last_activity = NOW - 3 * 3600 * 1000,
+}
+local s_da = board.format_row(row_da, NOW)
+check("case9 not-live marker", s_da:find("\u{25cb}", 1, true) ~= nil)
+check("case9 checkmark when done", s_da:find("\u{2713}", 1, true) ~= nil)
+check("case9 archived prefix", s_da:sub(1, #"[archived]") == "[archived]")
+check("case9 contains stopped state", s_da:find("stopped", 1, true) ~= nil)
+
+local long_name = string.rep("z", 30)
+local row_long = {
+  id = "f3",
+  name = long_name,
+  cwd = "/p",
+  live = false,
+  done = false,
+  archived = false,
+  state = "new",
+  last_activity = NOW,
+}
+local s_long = board.format_row(row_long, NOW)
+check(
+  "case9 long name truncated with ellipsis",
+  s_long:find(long_name:sub(1, 21) .. "\u{2026}", 1, true) ~= nil
+    and s_long:find(long_name, 1, true) == nil
+)
 
 vim.fn.writefile(out, os.getenv("AGENT_FLEET_TEST_OUT"))
 vim.cmd("qa!")

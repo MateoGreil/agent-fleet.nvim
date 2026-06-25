@@ -37,11 +37,11 @@ vim.api.nvim_create_user_command("Agents", function()
     vim.notify("agent-fleet: no agents for this directory", vim.log.levels.INFO)
     return
   end
+  local now = os.time() * 1000
   vim.ui.select(rows, {
     prompt = "Agents",
     format_item = function(r)
-      local icon = r.live and "\u{25cf}" or "\u{25cb}"
-      return icon .. " " .. r.name .. (r.done and "  \u{2713}" or "")
+      return require("agent-fleet.board").format_row(r, now)
     end,
   }, function(choice)
     if choice then
@@ -63,10 +63,11 @@ vim.api.nvim_create_user_command("AgentDone", function()
     vim.notify("agent-fleet: no agent to mark done", vim.log.levels.INFO)
     return
   end
+  local now = os.time() * 1000
   vim.ui.select(cands, {
     prompt = "Mark done",
     format_item = function(row)
-      return (row.live and "\u{25cf} " or "\u{25cb} ") .. row.name
+      return require("agent-fleet.board").format_row(row, now)
     end,
   }, function(chosen)
     if chosen then
@@ -92,10 +93,11 @@ vim.api.nvim_create_user_command("AgentArchive", function()
     vim.notify("agent-fleet: no agent to archive", vim.log.levels.INFO)
     return
   end
+  local now = os.time() * 1000
   vim.ui.select(cands, {
     prompt = "Archive / unarchive",
     format_item = function(row)
-      return (row.archived and "[archived] " or "") .. row.name
+      return require("agent-fleet.board").format_row(row, now)
     end,
   }, function(chosen)
     if chosen then
@@ -143,10 +145,11 @@ vim.api.nvim_create_user_command("AgentRename", function(opts)
     vim.notify("agent-fleet: no agent to rename", vim.log.levels.INFO)
     return
   end
+  local now = os.time() * 1000
   vim.ui.select(cands, {
     prompt = "Rename",
     format_item = function(r)
-      return (r.archived and "[archived] " or "") .. (r.live and "\u{25cf} " or "\u{25cb} ") .. r.name
+      return require("agent-fleet.board").format_row(r, now)
     end,
   }, function(chosen)
     if chosen then

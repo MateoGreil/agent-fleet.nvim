@@ -120,6 +120,22 @@ local i9 = sessions.tail_info(fbig)
 check("big file tail -> idle", i9 ~= nil and i9.state == "idle")
 check("big file last_activity == final ts", i9 ~= nil and i9.last_activity == ms_for(big_final_ts))
 
+local tail_only = {
+  header("idtail", "2026-05-01T00:00:00.000Z"),
+  msg("2026-05-01T00:00:01.000Z", "assistant", "stop"),
+}
+for _ = 1, 3000 do
+  tail_only[#tail_only + 1] = vim.json.encode({
+    type = "thinking_level_change",
+    timestamp = "2026-05-01T00:00:02.000Z",
+    payload = string.rep("y", 20),
+  })
+end
+local ftail = write_fixture(tail_only)
+check("tail-only filler exceeds 16KB after message", vim.loop.fs_stat(ftail).size > 16384)
+local itail = sessions.tail_info(ftail)
+check("tail-only message outside last 16KB -> new", itail ~= nil and itail.state == "new")
+
 local now = 2000000000 * 1000
 check("rel now", util.relative_time(now - 30 * 1000, now) == "now")
 check("rel 5m", util.relative_time(now - 5 * 60 * 1000, now) == "5m")

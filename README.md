@@ -40,8 +40,11 @@ Built incrementally, feature by feature. Done so far:
   by default). Soft archive only — never deletes a session file. `:AgentRename`
   renames an agent (the current agent's buffer, or a picked one). `:AgentDone` /
   `:AgentArchive` also act on the current agent's buffer, closing (killing) its
-  terminal when live. Status is just live vs not for now (rich
-  `working`/`needs_input` is the next item).
+  terminal when live. Each row shows a derived state
+  (`idle`/`working`/`stopped`/`error`/`new`, tailed from the session `.jsonl`)
+  and a relative last-activity time (`now`/`5m`/`3h`/`2d`/`3w`); the board is
+  sorted by most-recently-active first (within the live / done / archived
+  grouping).
 - **[x] Background auto-naming (opt-in)** — a pi agent launched **without** a
   name can be renamed automatically in the background: the plugin polls the
   session `.jsonl` until the first user message lands, asks a lightweight
@@ -57,9 +60,12 @@ Roadmap:
 - **[ ] Auto-restore** — optional `VimEnter` behavior to relaunch the agents
   that were live when you quit. Off by default (manual resume from the board is
   the better default); a config flag on top of the roster.
-- **[ ] Live agent state** — derive `working` / `needs_input` / `idle` for live
-  agents by tailing their session `.jsonl` (v1 shows live = `running`, dead =
-  `unknown`). Later: derive a final state for dead sessions too.
+- **[x] Live agent state** — derive `idle` / `working` / `stopped` / `error` /
+  `new` for every agent by tailing its session `.jsonl` (tail-bounded read, no
+  whole-file scan), shown alongside a relative last-activity time, and the board
+  is re-sorted by most-recently-active.
+- **[ ] Per-row preview** — show each agent's last assistant message (or a short
+  snippet of it) inline in the board / a preview pane. Deferred.
 - **[ ] UI board** — a dedicated board buffer with per-row keybindings
   (`<CR>` switch, `d` archive, `D` done) inspired by pi-agent-board, replacing
   the `vim.ui.select` picker.
