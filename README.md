@@ -26,6 +26,9 @@ Built incrementally, feature by feature. Done so far:
 Roadmap:
 
 - **[ ] Worktrees** — one git worktree (new branch) per agent.
+- **[ ] Persistence & resume** — persist agent metadata (type, name, worktree,
+  session id) so quitting nvim and coming back relaunches each agent resuming
+  its session (`pi --session <id>`, `claude --resume`).
 - **[ ] List & switch** — picker of running agents with status.
 - **[ ] UI** — a nice board view (inspired by pi-agent-board).
 - **[ ] Lifecycle** — rename, stop, clean up worktree, land changes.
