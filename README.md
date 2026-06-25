@@ -31,14 +31,15 @@ Built incrementally, feature by feature. Done so far:
   records it. `:AgentResume` reopens a past agent of the current directory —
   focusing its live buffer if still running, else relaunching `pi --session
   <id>` in its original cwd (never touching the session file).
+- **[x] List & switch** — `:Agents` lists the agents of the **current directory**
+  (live ones in this nvim merged with this cwd's pi sessions on disk, deduped by
+  session id) and switches to the chosen one — focus if live, else resume.
+  `:AgentDone` marks an agent done (✓); `:AgentArchive` toggles archive (hidden
+  by default). Soft archive only — never deletes a session file. Status is just
+  live vs not for now (rich `working`/`needs_input` is the next item).
 
 Roadmap:
 
-- **[ ] List & switch** — the board UI on top: `:Agents` picker showing the
-  agents of the **current directory** (live ones in this nvim + this cwd's
-  sessions on disk) with status; select to switch (focus the live buffer) or
-  resume (relaunch by session id). Plus `:AgentDone` / `:AgentArchive` (soft
-  archive — never deletes a session file).
 - **[ ] Scope config** — a `scope = "cwd" | "git-root" | "all"` option (default
   `"cwd"`) controlling which agents the board lists, plus a `:Agents!` bang to
   show all directories at once.
@@ -69,6 +70,9 @@ Roadmap:
 :Agent           " launch the default agent in the current working directory
 :Agent claude    " launch a specific configured agent (Tab-completes)
 :AgentResume     " reopen a past agent of this directory (focus if live, else resume)
+:Agents          " list & switch agents of this directory (focus if live, else resume)
+:AgentDone       " mark an agent done (✓)
+:AgentArchive    " archive / unarchive an agent (hidden from :Agents by default)
 ```
 
 Inside an agent terminal: `<C-\><C-n>` to enter Normal mode, then move / scroll /
