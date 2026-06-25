@@ -1,8 +1,12 @@
 # agent-fleet.nvim
 
 Run a fleet of coding agents from Neovim — [pi](https://pi.dev), Claude Code, or
-any agent CLI — each in its own native terminal, launched in its own git
-worktree, listed and switchable from a clean UI.
+any agent CLI — each in its own native terminal, listed and switchable from a
+clean UI.
+
+Git isolation (worktrees) is left to the agent itself: a well-instructed agent
+already knows whether a task needs a worktree and what to name it, so
+agent-fleet doesn't create them — it just launches agents.
 
 ## Why
 
@@ -25,8 +29,7 @@ Built incrementally, feature by feature. Done so far:
 
 Roadmap:
 
-- **[ ] Worktrees** — one git worktree (new branch) per agent.
-- **[ ] Persistence & resume** — persist agent metadata (type, name, worktree,
+- **[ ] Persistence & resume** — persist agent metadata (type, name, cwd,
   session id) so quitting nvim and coming back relaunches each agent resuming
   its session. We assign the id at launch (`pi --session-id <uuid>`, `claude
   --resume`), so resuming is just relaunching with the same id.
@@ -36,6 +39,9 @@ Roadmap:
   the pure-native terminal behavior; full transcript still comes from the
   session file.
 - **[ ] List & switch** — picker of running agents with status.
+- **[ ] (later) Worktree-aware** — agent-fleet never *creates* worktrees (that's
+  the agent's job), but could later *discover* them via `git worktree list` to
+  show in the picker and offer cleanup. Low priority.
 - **[ ] UI** — a nice board view (inspired by pi-agent-board).
 - **[ ] Lifecycle** — rename, stop, clean up worktree, land changes.
 
