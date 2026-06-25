@@ -33,10 +33,14 @@ Roadmap:
   disk (`id → {type, name, cwd, …}`); `:Agent` assigns a `--session-id <uuid>`
   at launch and records it. Resuming a session = relaunching `pi --session-id
   <id>` in its cwd. No UI yet; the foundation List & switch builds on.
-- **[ ] List & switch** — the board UI on top: `:Agents` picker showing every
-  known agent (live ones in this nvim + sessions on disk) with status; select to
-  switch (focus the live buffer) or resume (relaunch by session id). Plus
-  `:AgentDone` / `:AgentArchive` (soft archive — never deletes a session file).
+- **[ ] List & switch** — the board UI on top: `:Agents` picker showing the
+  agents of the **current directory** (live ones in this nvim + this cwd's
+  sessions on disk) with status; select to switch (focus the live buffer) or
+  resume (relaunch by session id). Plus `:AgentDone` / `:AgentArchive` (soft
+  archive — never deletes a session file).
+- **[ ] Scope config** — a `scope = "cwd" | "git-root" | "all"` option (default
+  `"cwd"`) controlling which agents the board lists, plus a `:Agents!` bang to
+  show all directories at once.
 - **[ ] Auto-restore** — optional `VimEnter` behavior to relaunch the agents
   that were live when you quit. Off by default (manual resume from the board is
   the better default); a config flag on top of the roster.
