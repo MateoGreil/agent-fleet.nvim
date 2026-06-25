@@ -99,6 +99,11 @@ agents = {
 
 `:Agent <key>` then launches it, with Tab-completion over the configured keys.
 
+`cmd` is split on spaces into an argv list and executed directly **without a
+shell**, so each token becomes a separate argument — no quoting, pipes, or
+`VAR=val` env prefixes. If you need shell features, point `cmd` at a wrapper
+script.
+
 ### `window` — where the agent opens
 
 `window` is run as a plain Ex command right before the buffer becomes a
