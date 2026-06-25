@@ -59,3 +59,45 @@ vim.api.nvim_create_user_command("Agents", function()
     end
   end)
 end, { desc = "agent-fleet: list & switch agents of the current directory" })
+
+vim.api.nvim_create_user_command("AgentDone", function()
+  local cands = require("agent-fleet.board").done_candidates(vim.fn.getcwd())
+  if #cands == 0 then
+    vim.notify("agent-fleet: no agent to mark done", vim.log.levels.INFO)
+    return
+  end
+  vim.ui.select(cands, {
+    prompt = "Mark done",
+    format_item = function(e)
+      return e.name
+    end,
+  }, function(choice)
+    if choice then
+      require("agent-fleet.roster").mark_done(choice.id)
+      vim.notify("agent-fleet: marked done \u{2014} " .. choice.name, vim.log.levels.INFO)
+    end
+  end)
+end, { desc = "agent-fleet: mark a past agent done (current directory)" })
+
+vim.api.nvim_create_user_command("AgentArchive", function()
+  local cands = require("agent-fleet.board").archive_candidates(vim.fn.getcwd())
+  if #cands == 0 then
+    vim.notify("agent-fleet: no agent to archive", vim.log.levels.INFO)
+    return
+  end
+  vim.ui.select(cands, {
+    prompt = "Archive / unarchive",
+    format_item = function(e)
+      return (e.archived and "[archived] " or "") .. e.name
+    end,
+  }, function(choice)
+    if choice then
+      local now = not choice.archived
+      require("agent-fleet.roster").set_archived(choice.id, now)
+      vim.notify(
+        ("agent-fleet: %s \u{2014} %s"):format(now and "archived" or "unarchived", choice.name),
+        vim.log.levels.INFO
+      )
+    end
+  end)
+end, { desc = "agent-fleet: archive / unarchive a past agent (current directory)" })

@@ -112,4 +112,32 @@ function M.rows(opts)
   return rows
 end
 
+local function live_ids()
+  local agent = require("agent-fleet.agent")
+  local result = {}
+  for _, entry in pairs(agent.agents) do
+    if entry.session_id ~= nil and entry.bufnr ~= nil and vim.api.nvim_buf_is_valid(entry.bufnr) then
+      result[entry.session_id] = true
+    end
+  end
+  return result
+end
+
+function M.done_candidates(cwd)
+  cwd = cwd or vim.fn.getcwd()
+  local live = live_ids()
+  local result = {}
+  for _, entry in ipairs(require("agent-fleet.roster").list({ cwd = cwd })) do
+    if not entry.done and not live[entry.id] then
+      result[#result + 1] = entry
+    end
+  end
+  return result
+end
+
+function M.archive_candidates(cwd)
+  cwd = cwd or vim.fn.getcwd()
+  return require("agent-fleet.roster").list({ cwd = cwd, include_archived = true })
+end
+
 return M
