@@ -4,7 +4,7 @@ set -u
 REPO="/home/mat/agent-fleet.nvim"
 cd "$REPO" || exit 2
 
-specs=(roster_spec launch_spec resume_spec)
+specs=(roster_spec launch_spec resume_spec sessions_spec)
 total_pass=0
 total_fail=0
 
