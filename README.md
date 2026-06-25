@@ -44,8 +44,31 @@ yank with your usual nvim keys. `i` / `a` to type to pi again.
 
 ```lua
 require("pi-fleet").setup({
-  pi_cmd = "pi",
-  window = "enew", -- "botright vnew" for a vertical split instead
-  start_insert = true,
+  pi_cmd = "pi",       -- command used to launch a pi agent
+  window = "enew",     -- where the agent terminal opens (see below)
+  start_insert = true, -- drop straight into terminal insert mode
 })
 ```
+
+### `window` — where the agent opens
+
+`window` is run as a plain Ex command right before the buffer becomes a
+terminal, so any window-opening command works. Common choices:
+
+| Value             | Result                          |
+| ----------------- | ------------------------------- |
+| `"enew"`          | current window (default)        |
+| `"botright vnew"` | new vertical split on the right |
+| `"topleft vnew"`  | new vertical split on the left  |
+| `"topleft new"`   | new horizontal split on top     |
+| `"botright new"`  | new horizontal split on the bottom |
+| `"tabnew"`        | new tab                         |
+
+Power users can pass any Ex command, e.g. `window = "botright 80vnew"` for a
+fixed-width split.
+
+| Option         | Default | Description                                  |
+| -------------- | ------- | -------------------------------------------- |
+| `pi_cmd`       | `"pi"`  | Command launched in the terminal.            |
+| `window`       | `"enew"`| Ex command that opens the agent window.      |
+| `start_insert` | `true`  | Enter terminal insert mode after launching.  |
