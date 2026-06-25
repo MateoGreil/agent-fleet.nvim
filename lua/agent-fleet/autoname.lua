@@ -1,5 +1,9 @@
 local M = {}
 
+M.max_name_words = 5
+M.max_name_chars = 100
+M._warned_no_model = false
+
 M.system_prompt =
   "You name coding-agent sessions. Given the task description below, reply with ONLY a short name of 2 to 5 words that describes the task. No quotes, no trailing punctuation, no explanation, no full sentence — just the name."
 
@@ -132,6 +136,171 @@ function M.build_argv(pi_cmd, prompt, system, model, thinking)
     argv[#argv + 1] = v
   end
   return argv
+end
+
+function M.eligible(agent, cfg)
+  if not (cfg and cfg.auto_name and cfg.auto_name.enabled == true) then
+    return false
+  end
+  if agent.auto_named ~= true then
+    return false
+  end
+  if type(agent.session_id) ~= "string" then
+    return false
+  end
+  if agent.agent ~= "pi" then
+    return false
+  end
+  if type(cfg.auto_name.model) ~= "string" or cfg.auto_name.model == "" then
+    return false
+  end
+  return true
+end
+
+function M.locate_file(session_id, sessions_dir)
+  local matches = vim.fn.glob(sessions_dir .. "/**/*_" .. session_id .. ".jsonl", true, true)
+  if #matches == 0 then
+    return nil
+  end
+  return matches[1]
+end
+
+function M.apply_name(session_id, raw)
+  local name = M.sanitize(raw, M.max_name_words, M.max_name_chars)
+  if not name then
+    return
+  end
+
+  local entry = require("agent-fleet.roster").get(session_id)
+  if not entry or entry.auto_named ~= true then
+    return
+  end
+
+  local agent = require("agent-fleet.agent")
+  local live
+  for _, a in pairs(agent.agents) do
+    if a.session_id == session_id then
+      live = a
+      break
+    end
+  end
+
+  local row
+  if live and live.bufnr and vim.api.nvim_buf_is_valid(live.bufnr) then
+    row = { id = session_id, name = live.name, cwd = live.cwd, live = true, bufnr = live.bufnr }
+  else
+    row = { id = session_id, name = entry.name, cwd = entry.cwd, live = false }
+  end
+
+  require("agent-fleet.actions").rename(row, name, { auto = true })
+  vim.notify("agent-fleet: auto-named \u{2014} " .. name, vim.log.levels.INFO)
+end
+
+function M.runner(argv, cwd, timeout_ms, cb)
+  local done = false
+  local function finish(result)
+    if done then
+      return
+    end
+    done = true
+    cb(result)
+  end
+
+  local out = {}
+  local timer
+  local job = vim.fn.jobstart(argv, {
+    cwd = cwd,
+    stdout_buffered = true,
+    on_stdout = function(_, data)
+      for _, l in ipairs(data or {}) do
+        out[#out + 1] = l
+      end
+    end,
+    on_exit = function(_, code)
+      if timer then
+        pcall(vim.fn.timer_stop, timer)
+      end
+      if code == 0 then
+        finish(table.concat(out, "\n"))
+      else
+        finish(nil)
+      end
+    end,
+  })
+
+  if job <= 0 then
+    finish(nil)
+    return
+  end
+
+  timer = vim.fn.timer_start(timeout_ms, function()
+    pcall(vim.fn.jobstop, job)
+    finish(nil)
+  end)
+end
+
+function M.arm(agent)
+  local cfg = require("agent-fleet.config").get()
+
+  if not M.eligible(agent, cfg) then
+    if
+      cfg.auto_name
+      and cfg.auto_name.enabled
+      and agent.auto_named
+      and agent.session_id
+      and agent.agent == "pi"
+      and (type(cfg.auto_name.model) ~= "string" or cfg.auto_name.model == "")
+      and not M._warned_no_model
+    then
+      M._warned_no_model = true
+      vim.notify("agent-fleet: auto_name.enabled but no auto_name.model set", vim.log.levels.WARN)
+    end
+    return
+  end
+
+  local interval = cfg.auto_name.poll_interval_ms
+  local timeout = cfg.auto_name.poll_timeout_ms
+  local elapsed = 0
+
+  local timer
+  timer = vim.fn.timer_start(interval, function()
+    local ok = pcall(function()
+      local agent_mod = require("agent-fleet.agent")
+      local live
+      for _, a in pairs(agent_mod.agents) do
+        if a.session_id == agent.session_id then
+          live = a
+          break
+        end
+      end
+      if not live or live.auto_named ~= true then
+        pcall(vim.fn.timer_stop, timer)
+        return
+      end
+
+      elapsed = elapsed + interval
+      if elapsed >= timeout then
+        pcall(vim.fn.timer_stop, timer)
+        return
+      end
+
+      local file = M.locate_file(agent.session_id, cfg.sessions_dir)
+      local prompt = file and M.first_user_text(file, cfg.auto_name.max_chars)
+      if type(prompt) == "string" and prompt ~= "" then
+        pcall(vim.fn.timer_stop, timer)
+        local pi_cmd = cfg.agents[agent.agent].cmd
+        local argv = M.build_argv(pi_cmd, prompt, M.system_prompt, cfg.auto_name.model, cfg.auto_name.thinking)
+        M.runner(argv, agent.cwd, cfg.auto_name.namer_timeout_ms, function(raw)
+          if raw then
+            M.apply_name(agent.session_id, raw)
+          end
+        end)
+      end
+    end)
+    if not ok then
+      pcall(vim.fn.timer_stop, timer)
+    end
+  end, { ["repeat"] = -1 })
 end
 
 return M

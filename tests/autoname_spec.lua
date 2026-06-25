@@ -178,5 +178,125 @@ local argv2 = autoname.build_argv("pi --foo", "P", "S", "M", "off")
 check("build_argv split base cmd 1", argv2[1] == "pi")
 check("build_argv split base cmd 2", argv2[2] == "--foo")
 
+-- autoname.eligible matrix
+local elig_agent = { auto_named = true, session_id = "elig-sid", agent = "pi" }
+local elig_cfg = { auto_name = { enabled = true, model = "fake/model" } }
+check("eligible all true", autoname.eligible(elig_agent, elig_cfg) == true)
+check(
+  "eligible disabled",
+  autoname.eligible(elig_agent, { auto_name = { enabled = false, model = "fake/model" } }) == false
+)
+check(
+  "eligible auto_named false",
+  autoname.eligible({ auto_named = false, session_id = "elig-sid", agent = "pi" }, elig_cfg) == false
+)
+check(
+  "eligible non-pi agent",
+  autoname.eligible({ auto_named = true, session_id = "elig-sid", agent = "claude" }, elig_cfg) == false
+)
+check(
+  "eligible nil session_id",
+  autoname.eligible({ auto_named = true, session_id = nil, agent = "pi" }, elig_cfg) == false
+)
+check("eligible nil model", autoname.eligible(elig_agent, { auto_name = { enabled = true } }) == false)
+
+-- autoname.apply_name happy path
+local id_ap = "apply-happy-00000001"
+local cwd_ap = "/apply/cwd"
+roster.add({ id = id_ap, type = "pi", name = "pi-1", cwd = cwd_ap, auto_named = true })
+local buf_ap = vim.api.nvim_create_buf(false, true)
+agent.agents[701] = { session_id = id_ap, bufnr = buf_ap, cwd = cwd_ap, name = "pi-1", auto_named = true, agent = "pi" }
+autoname.apply_name(id_ap, "Fix Login Flow")
+check("apply_name sets roster name", roster.get(id_ap).name == "Fix Login Flow")
+check("apply_name preserves auto_named", roster.get(id_ap).auto_named == true)
+check("apply_name updates live agent name", agent.agents[701].name == "Fix Login Flow")
+agent.agents[701] = nil
+
+-- autoname.apply_name junk -> no-op
+local id_junk = "apply-junk-00000001"
+roster.add({ id = id_junk, type = "pi", name = "keepme", cwd = cwd_ap, auto_named = true })
+autoname.apply_name(id_junk, "   ")
+check("apply_name junk no-op", roster.get(id_junk).name == "keepme")
+
+-- autoname.apply_name when user already renamed -> gate blocks
+local id_ren = "apply-renamed-00000001"
+roster.add({ id = id_ren, type = "pi", name = "keepme2", cwd = cwd_ap, auto_named = true })
+roster.set_auto_named(id_ren, false)
+autoname.apply_name(id_ren, "Some Name")
+check("apply_name already-renamed no-op", roster.get(id_ren).name == "keepme2")
+
+-- autoname.arm end-to-end with injected runner
+local tmp_dir = vim.fn.tempname()
+vim.fn.mkdir(tmp_dir, "p")
+config.setup({
+  auto_name = {
+    enabled = true,
+    model = "fake/model",
+    poll_interval_ms = 10,
+    poll_timeout_ms = 2000,
+    namer_timeout_ms = 1000,
+    max_chars = 2000,
+    thinking = "off",
+  },
+  sessions_dir = tmp_dir,
+  agents = {
+    pi = { cmd = "true", session = { id_flag = "--session-id", name_flag = "--name", resume_flag = "--session" } },
+  },
+  start_insert = false,
+})
+local sessions = require("agent-fleet.sessions")
+local id_arm = "arm-e2e-00000001"
+local cwd_arm = "/home/test/proj"
+local arm_dir = tmp_dir .. "/" .. sessions.cwd_slug(cwd_arm)
+vim.fn.mkdir(arm_dir, "p")
+local arm_file = arm_dir .. "/20260101_120000_" .. id_arm .. ".jsonl"
+vim.fn.writefile({
+  vim.json.encode({ type = "session", version = 3, id = id_arm, cwd = cwd_arm }),
+  vim.json.encode({
+    type = "message",
+    message = { role = "user", content = { { type = "text", text = "add billing export" } } },
+  }),
+}, arm_file)
+roster.add({ id = id_arm, type = "pi", name = "pi-9", cwd = cwd_arm, auto_named = true })
+local buf_arm = vim.api.nvim_create_buf(false, true)
+agent.agents[801] =
+  { session_id = id_arm, bufnr = buf_arm, cwd = cwd_arm, name = "pi-9", auto_named = true, agent = "pi" }
+local saved_runner = autoname.runner
+autoname.runner = function(_argv, _cwd, _timeout, cb)
+  cb("Billing Export")
+end
+autoname.arm({ session_id = id_arm, cwd = cwd_arm, agent = "pi", auto_named = true })
+vim.wait(800, function()
+  return roster.get(id_arm).name == "Billing Export"
+end)
+autoname.runner = saved_runner
+check("arm e2e renamed", roster.get(id_arm).name == "Billing Export")
+check("arm e2e preserves auto_named", roster.get(id_arm).auto_named == true)
+agent.agents[801] = nil
+
+-- autoname.arm disabled -> runner never called
+config.setup({
+  auto_name = { enabled = false },
+  agents = {
+    pi = { cmd = "true", session = { id_flag = "--session-id", name_flag = "--name", resume_flag = "--session" } },
+  },
+  start_insert = false,
+})
+local disabled_called = false
+local saved_runner2 = autoname.runner
+autoname.runner = function()
+  disabled_called = true
+end
+local id_dis = "arm-disabled-00000001"
+roster.add({ id = id_dis, type = "pi", name = "pi-d", cwd = "/p", auto_named = true })
+agent.agents[802] =
+  { session_id = id_dis, bufnr = vim.api.nvim_create_buf(false, true), cwd = "/p", name = "pi-d", auto_named = true, agent = "pi" }
+autoname.arm({ session_id = id_dis, cwd = "/p", agent = "pi", auto_named = true })
+vim.wait(100)
+autoname.runner = saved_runner2
+check("arm disabled runner not called", disabled_called == false)
+check("arm disabled no rename", roster.get(id_dis).name == "pi-d")
+agent.agents[802] = nil
+
 vim.fn.writefile(out, os.getenv("AGENT_FLEET_TEST_OUT"))
 vim.cmd("qa!")
