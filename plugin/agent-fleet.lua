@@ -39,3 +39,23 @@ vim.api.nvim_create_user_command("AgentResume", function()
     end
   end)
 end, { desc = "agent-fleet: resume a past agent (current directory)" })
+
+vim.api.nvim_create_user_command("Agents", function()
+  local board = require("agent-fleet.board")
+  local rows = board.rows({ cwd = vim.fn.getcwd() })
+  if #rows == 0 then
+    vim.notify("agent-fleet: no agents for this directory", vim.log.levels.INFO)
+    return
+  end
+  vim.ui.select(rows, {
+    prompt = "Agents",
+    format_item = function(r)
+      local icon = r.live and "\u{25cf}" or "\u{25cb}"
+      return icon .. " " .. r.name .. (r.done and "  \u{2713}" or "")
+    end,
+  }, function(choice)
+    if choice then
+      require("agent-fleet.agent").resume_session({ id = choice.id, cwd = choice.cwd, type = "pi" })
+    end
+  end)
+end, { desc = "agent-fleet: list & switch agents of the current directory" })

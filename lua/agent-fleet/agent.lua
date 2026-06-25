@@ -108,21 +108,17 @@ function M.launch(opts)
   return agent
 end
 
---- Resume a past agent by its session id: focus its live buffer if still
---- running, else relaunch its pi session in its original cwd.
---- @param id string
+--- Resume a session by spec: focus its live buffer if still running, else
+--- relaunch its pi session in the given cwd. Works for sessions not in the
+--- roster (external/disk-only).
+--- @param spec table { id = string, cwd = string, type = string|nil }
 --- @return table|nil agent
-function M.resume(id)
+function M.resume_session(spec)
   local cfg = config.get()
-
-  local entry = require("agent-fleet.roster").get(id)
-  if not entry then
-    vim.notify("agent-fleet: unknown agent " .. tostring(id), vim.log.levels.ERROR)
-    return nil
-  end
+  local kind = spec.type or "pi"
 
   for _, agent in pairs(M.agents) do
-    if agent.session_id == id and vim.api.nvim_buf_is_valid(agent.bufnr) then
+    if agent.session_id == spec.id and vim.api.nvim_buf_is_valid(agent.bufnr) then
       local focused = false
       for _, win in ipairs(vim.api.nvim_tabpage_list_wins(0)) do
         if vim.api.nvim_win_get_buf(win) == agent.bufnr then
@@ -138,25 +134,40 @@ function M.resume(id)
     end
   end
 
-  local matches = vim.fn.glob(cfg.sessions_dir .. "/**/*_" .. id .. ".jsonl", true, true)
-  if #matches == 0 then
-    vim.notify("agent-fleet: session file not found for " .. id, vim.log.levels.WARN)
+  local def = cfg.agents[kind]
+  if not def or not def.session then
+    vim.notify("agent-fleet: cannot resume agent type '" .. tostring(kind) .. "'", vim.log.levels.ERROR)
     return nil
   end
 
-  local def = cfg.agents[entry.type]
-  if not def or not def.session then
-    vim.notify("agent-fleet: cannot resume agent type '" .. tostring(entry.type) .. "'", vim.log.levels.ERROR)
+  local matches = vim.fn.glob(cfg.sessions_dir .. "/**/*_" .. spec.id .. ".jsonl", true, true)
+  if #matches == 0 then
+    vim.notify("agent-fleet: session file not found for " .. spec.id, vim.log.levels.WARN)
     return nil
   end
+
+  local entry = require("agent-fleet.roster").get(spec.id)
+  local name = entry and entry.name or ("pi:" .. spec.id:sub(1, 8))
 
   M._seq = M._seq + 1
-  local argv = M.build_argv(def.cmd, { def.session.resume_flag, id })
+  local argv = M.build_argv(def.cmd, { def.session.resume_flag, spec.id })
   return spawn(
     argv,
-    entry.cwd,
-    { id = M._seq, name = entry.name, kind = entry.type, cmd = def.cmd, session_id = id }
+    spec.cwd,
+    { id = M._seq, name = name, kind = kind, cmd = def.cmd, session_id = spec.id }
   )
+end
+
+--- Resume a past agent by its session id, using the roster for cwd/type.
+--- @param id string
+--- @return table|nil agent
+function M.resume(id)
+  local entry = require("agent-fleet.roster").get(id)
+  if not entry then
+    vim.notify("agent-fleet: unknown agent " .. tostring(id), vim.log.levels.ERROR)
+    return nil
+  end
+  return M.resume_session({ id = entry.id, cwd = entry.cwd, type = entry.type })
 end
 
 --- @return table list of agents sorted by id
