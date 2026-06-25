@@ -28,7 +28,13 @@ Roadmap:
 - **[ ] Worktrees** — one git worktree (new branch) per agent.
 - **[ ] Persistence & resume** — persist agent metadata (type, name, worktree,
   session id) so quitting nvim and coming back relaunches each agent resuming
-  its session (`pi --session <id>`, `claude --resume`).
+  its session. We assign the id at launch (`pi --session-id <uuid>`, `claude
+  --resume`), so resuming is just relaunching with the same id.
+- **[ ] Detached background mode (opt-in)** — when enabled, agents run under a
+  PTY detacher (`abduco`/`dtach`) so closing nvim detaches them (they keep
+  working) and reopening re-attaches them into buffers. Off by default to keep
+  the pure-native terminal behavior; full transcript still comes from the
+  session file.
 - **[ ] List & switch** — picker of running agents with status.
 - **[ ] UI** — a nice board view (inspired by pi-agent-board).
 - **[ ] Lifecycle** — rename, stop, clean up worktree, land changes.
