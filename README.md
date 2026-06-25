@@ -25,7 +25,9 @@ own nvim keybindings** — the thing PTY-attach dashboards take away from you.
 
 Built incrementally, feature by feature. Done so far:
 
-- **[x] Launch** — `:Agent [type]` opens an agent CLI in a terminal in the current window.
+- **[x] Launch** — `:Agent [name]` launches the default agent in a terminal in
+  the current window; any arguments become the agent's name (auto-named when
+  omitted).
 - **[x] Persistence & resume** — a roster on disk (`id → {type, name, cwd, …}`);
   `:Agent` assigns each pi agent a `--session-id <uuid>` + `--name` at launch and
   records it. `:AgentResume` reopens a past agent of the current directory —
@@ -60,6 +62,9 @@ Roadmap:
 - **[ ] (later) Worktree-aware** — agent-fleet never *creates* worktrees (that's
   the agent's job), but could later *discover* them via `git worktree list` to
   show in the picker and offer cleanup. Low priority.
+- **[ ] Claude Code as a first-class fleet agent** — make `:Agents`,
+  persistence, resume and per-type launch work for Claude (and other agents),
+  not just pi. Today only pi is fully supported end-to-end.
 - **[ ] Claude & other agents resume** — extend persistence/resume beyond pi
   (`claude --resume`), incl. discovering their sessions. pi-only at first.
 - **[ ] Lifecycle** — rename, stop, land changes.
@@ -67,8 +72,8 @@ Roadmap:
 ## Usage
 
 ```vim
-:Agent           " launch the default agent in the current working directory
-:Agent claude    " launch a specific configured agent (Tab-completes)
+:Agent           " launch the default agent (auto-named) in the cwd
+:Agent fix auth  " launch the default agent named "fix auth"
 :AgentResume     " reopen a past agent of this directory (focus if live, else resume)
 :Agents          " list & switch agents of this directory (focus if live, else resume)
 :AgentDone       " mark an agent done (✓)
@@ -103,7 +108,9 @@ agents = {
 }
 ```
 
-`:Agent <key>` then launches it, with Tab-completion over the configured keys.
+`default_agent` chooses which of these `:Agent` launches; the `agents` registry
+is kept for future multi-agent support, but the agent type is no longer a
+command argument (all of `:Agent`'s arguments become the new agent's name).
 
 `cmd` is split on spaces into an argv list and executed directly **without a
 shell**, so each token becomes a separate argument — no quoting, pipes, or

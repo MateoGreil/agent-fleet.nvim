@@ -4,21 +4,11 @@ end
 vim.g.loaded_agent_fleet = true
 
 vim.api.nvim_create_user_command("Agent", function(opts)
-  require("agent-fleet").launch({ agent = opts.args ~= "" and opts.args or nil })
+  local name = vim.trim(opts.args)
+  require("agent-fleet").launch({ name = name ~= "" and name or nil })
 end, {
-  nargs = "?",
-  complete = function(arg_lead)
-    local agents = require("agent-fleet.config").get().agents
-    local keys = {}
-    for key in pairs(agents) do
-      if key:find(arg_lead, 1, true) == 1 then
-        table.insert(keys, key)
-      end
-    end
-    table.sort(keys)
-    return keys
-  end,
-  desc = "agent-fleet: launch a coding agent in a terminal",
+  nargs = "*",
+  desc = "agent-fleet: launch the default coding agent in a terminal, optionally named",
 })
 
 vim.api.nvim_create_user_command("AgentResume", function()
