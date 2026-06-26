@@ -11,6 +11,10 @@ end, {
   desc = "agent-fleet: launch the default coding agent in a terminal, optionally named",
 })
 
+vim.api.nvim_create_user_command("AgentsBoard", function()
+  require("agent-fleet.ui").open()
+end, { desc = "agent-fleet: open the board" })
+
 vim.api.nvim_create_user_command("AgentResume", function()
   local roster = require("agent-fleet.roster")
   local entries = roster.list({ cwd = vim.fn.getcwd() })
