@@ -22,6 +22,15 @@ local state = {
 
 M._state = state
 
+local BANNER = {
+  " ██   ███ ████ █  █ ████      ████ █    ████ ████ ████",
+  "█  █ █    █    ██ █  █        █    █    █    █     █  ",
+  "████ █ ██ ███  █ ██  █    ██  ███  █    ███  ███   █  ",
+  "█  █ █  █ █    █  █  █        █    █    █    █     █  ",
+  "█  █  ███ ████ █  █  █        █    ████ ████ ████  █  ",
+}
+local BANNER_SUBTITLE = string.rep(" ", 49) .. ".nvim"
+
 function M.define_highlights()
   for name, target in pairs(HL_LINKS) do
     vim.api.nvim_set_hl(0, name, { link = target, default = true })
@@ -63,23 +72,47 @@ local function render_into(bufnr)
     archived_count = archived_count,
   })
 
+  local lines = {}
+  for _, l in ipairs(BANNER) do
+    lines[#lines + 1] = l
+  end
+  lines[#lines + 1] = BANNER_SUBTITLE
+  lines[#lines + 1] = ""
+  local offset = #lines
+  for _, l in ipairs(spec.lines) do
+    lines[#lines + 1] = l
+  end
+
   local ns = namespace()
   vim.api.nvim_set_option_value("modifiable", true, { buf = bufnr })
-  vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, spec.lines)
+  vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, lines)
   vim.api.nvim_buf_clear_namespace(bufnr, ns, 0, -1)
+  for i, l in ipairs(BANNER) do
+    vim.api.nvim_buf_set_extmark(bufnr, ns, i - 1, 0, {
+      end_col = #l,
+      hl_group = "AgentFleetHeader",
+    })
+  end
+  vim.api.nvim_buf_set_extmark(bufnr, ns, #BANNER, #BANNER_SUBTITLE - #".nvim", {
+    end_col = #BANNER_SUBTITLE,
+    hl_group = "AgentFleetTime",
+  })
   for _, h in ipairs(spec.highlights) do
     local end_col = h.col_end
     if end_col == -1 then
       end_col = #spec.lines[h.line + 1]
     end
-    vim.api.nvim_buf_set_extmark(bufnr, ns, h.line, h.col_start, {
+    vim.api.nvim_buf_set_extmark(bufnr, ns, h.line + offset, h.col_start, {
       end_col = end_col,
       hl_group = h.hl_group,
     })
   end
   vim.api.nvim_set_option_value("modifiable", false, { buf = bufnr })
 
-  state.line_to_row = spec.line_to_row
+  state.line_to_row = {}
+  for lnum, row in pairs(spec.line_to_row) do
+    state.line_to_row[lnum + offset] = row
+  end
 end
 
 local function nearest_content_line(target)

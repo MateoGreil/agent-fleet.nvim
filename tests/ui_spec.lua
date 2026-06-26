@@ -71,6 +71,10 @@ local function lines_have(ls, needle)
 end
 check("open buffer mentions an agent name", lines_have(lines, "alpha"))
 
+-- Case 2b: the AGENT-FLEET banner title sits at the top
+check("board first line is the banner", lines[1]:find("\u{2588}", 1, true) ~= nil)
+check("board shows the .nvim subtitle", lines_have(lines, ".nvim"))
+
 local win = vim.api.nvim_get_current_win()
 check("open window number off", win_opt(win, "number") == false)
 check("open window relativenumber off", win_opt(win, "relativenumber") == false)
@@ -82,25 +86,20 @@ local ns = vim.api.nvim_create_namespace("agent_fleet_board")
 local marks = vim.api.nvim_buf_get_extmarks(bufnr, ns, 0, -1, { details = true })
 check("open paints extmarks", #marks > 0)
 
--- Case 4: refresh preserves cursor by row identity across reorder
--- Initial IDLE order is B (newer) then A (older). Put cursor on A.
-local board = require("agent-fleet.board")
-local rows = board.rows({ cwd = PROJ, include_archived = true })
-local spec = board.render(rows, { now_ms = os.time() * 1000, cwd = PROJ, show_archived = false })
-local lineA = line_of_id(spec.line_to_row, idA)
+-- Case 4: refresh preserves cursor by row identity across reorder.
+-- Uses the live board mapping (ui._state.line_to_row), which accounts for the
+-- banner offset, so it is independent of the pure render's line numbers.
+local lineA = line_of_id(ui._state.line_to_row, idA)
 check("refresh setup found row A", lineA ~= nil)
 vim.api.nvim_win_set_cursor(win, { lineA, 0 })
 -- Reorder: mark B done so it leaves the IDLE section; A shifts up.
 roster.mark_done(idB)
 ui.refresh()
 local cur = vim.api.nvim_win_get_cursor(win)[1]
-local new_rows = board.rows({ cwd = PROJ, include_archived = true })
-local new_spec = board.render(new_rows, { now_ms = os.time() * 1000, cwd = PROJ, show_archived = false })
-local newLineA = line_of_id(new_spec.line_to_row, idA)
-check("refresh cursor follows row A after reorder", cur == newLineA)
+local cur_row = ui._state.line_to_row[cur]
+check("refresh cursor follows row A after reorder", cur_row ~= nil and cur_row.id == idA)
 
--- Case 5: refresh on a missing row clamps to a valid content line
-local cur_row = new_spec.line_to_row[cur]
+-- Case 5: the landed line maps to a real content row
 check("refresh landed on a content row", cur_row ~= nil and cur_row.id == idA)
 
 -- Case 6: empty state in a fresh project (board buffer wiped on enew, reopened)
