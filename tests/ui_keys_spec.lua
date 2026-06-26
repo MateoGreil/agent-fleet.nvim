@@ -29,9 +29,9 @@ ui.open()
 local bufnr = vim.api.nvim_get_current_buf()
 local win = vim.api.nvim_get_current_win()
 
-local function keymap_callbacks()
+local function keymap_callbacks(mode)
   local map = {}
-  for _, km in ipairs(vim.api.nvim_buf_get_keymap(bufnr, "n")) do
+  for _, km in ipairs(vim.api.nvim_buf_get_keymap(bufnr, mode or "n")) do
     map[km.lhs] = km.callback
   end
   return map
@@ -164,6 +164,72 @@ end)
 check("s on non-live row does not error", ok == true)
 check("s on non-live row leaves roster unchanged", roster.get(idA).done == before.done)
 check("s on non-live row keeps row visible", line_with("alpha") ~= nil)
+
+-- Case 8: visual-mode d is bound and marks every row in the range done
+local xcb = keymap_callbacks("x")
+check("visual keymap bound: d", type(xcb["d"]) == "function")
+
+local idD = "dddddddd-dddd-dddd-dddd-dddddddddddd"
+local idE = "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee"
+roster.add({ id = idD, type = "pi", name = "delta", cwd = PROJ, created_at = 4000 })
+roster.add({ id = idE, type = "pi", name = "epsilon", cwd = PROJ, created_at = 5000 })
+ui.refresh()
+
+local ld = line_with("delta")
+local le = line_with("epsilon")
+check("delta and epsilon both rendered", ld ~= nil and le ~= nil)
+
+-- rows_in_range collects the unique rows spanned by the line range
+local lo = math.min(ld, le)
+local hi = math.max(ld, le)
+local ranged = ui.rows_in_range(lo, hi)
+local ranged_ids = {}
+for _, r in ipairs(ranged) do
+  ranged_ids[r.id] = true
+end
+check("rows_in_range includes delta", ranged_ids[idD] == true)
+check("rows_in_range includes epsilon", ranged_ids[idE] == true)
+
+-- done_range marks every row in the span done in one shot
+ui.done_range(lo, hi)
+check("done_range marks delta done", roster.get(idD) ~= nil and roster.get(idD).done == true)
+check("done_range marks epsilon done", roster.get(idE) ~= nil and roster.get(idE).done == true)
+
+-- a range that covers no content lines (e.g. the banner) is a safe no-op
+local ok_empty = pcall(function()
+  ui.done_range(1, 1)
+end)
+check("done_range over header line does not error", ok_empty == true)
+
+-- Case 9: visual-mode x archives every row in the range
+local idF = "ffffffff-ffff-ffff-ffff-ffffffffffff"
+local idG = "99999999-9999-9999-9999-999999999999"
+roster.add({ id = idF, type = "pi", name = "foxtrot", cwd = PROJ, created_at = 6000 })
+roster.add({ id = idG, type = "pi", name = "golf", cwd = PROJ, created_at = 7000 })
+ui.refresh()
+
+local xcb_visual = keymap_callbacks("x")
+check("visual keymap bound: x", type(xcb_visual["x"]) == "function")
+check("visual keymap bound: s", type(xcb_visual["s"]) == "function")
+
+local lf = line_with("foxtrot")
+local lg = line_with("golf")
+ui.archive_range(math.min(lf, lg), math.max(lf, lg))
+check("archive_range archives foxtrot", roster.get(idF).archived == true)
+check("archive_range archives golf", roster.get(idG).archived == true)
+check("archived rows leave the default view", line_with("foxtrot") == nil and line_with("golf") == nil)
+
+-- Case 10: visual-mode s is a safe no-op when no row in the range is live
+cursor_to("delta")
+local ld2 = line_with("delta")
+local le2 = line_with("epsilon")
+local stop_lo = math.min(ld2, le2)
+local stop_hi = math.max(ld2, le2)
+local ok_stop = pcall(function()
+  ui.stop_range(stop_lo, stop_hi)
+end)
+check("stop_range over non-live rows does not error", ok_stop == true)
+check("stop_range leaves non-live rows visible", line_with("delta") ~= nil)
 
 vim.fn.writefile(out, os.getenv("AGENT_FLEET_TEST_OUT"))
 vim.cmd("qa!")

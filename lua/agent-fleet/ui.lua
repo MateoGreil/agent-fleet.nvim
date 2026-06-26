@@ -170,6 +170,22 @@ function M.row_under_cursor()
   return state.line_to_row[line]
 end
 
+function M.rows_in_range(line1, line2)
+  if line1 > line2 then
+    line1, line2 = line2, line1
+  end
+  local rows = {}
+  local seen = {}
+  for lnum = line1, line2 do
+    local row = state.line_to_row[lnum]
+    if row and not seen[row.id] then
+      seen[row.id] = true
+      rows[#rows + 1] = row
+    end
+  end
+  return rows
+end
+
 local function notify(msg)
   vim.notify("agent-fleet: " .. msg, vim.log.levels.INFO)
 end
@@ -182,14 +198,87 @@ local function handle_enter()
   require("agent-fleet.agent").resume_session({ id = row.id, cwd = row.cwd, type = "pi" })
 end
 
+local function mark_rows_done(rows)
+  if #rows == 0 then
+    return
+  end
+  local actions = require("agent-fleet.actions")
+  for _, row in ipairs(rows) do
+    actions.done(row)
+  end
+  M.refresh()
+  if #rows == 1 then
+    notify("marked done \u{2014} " .. rows[1].name)
+  else
+    notify("marked done \u{2014} " .. #rows .. " agents")
+  end
+end
+
+function M.done_range(line1, line2)
+  mark_rows_done(M.rows_in_range(line1, line2))
+end
+
 local function handle_done()
   local row = M.row_under_cursor()
   if not row then
     return
   end
-  require("agent-fleet.actions").done(row)
+  mark_rows_done({ row })
+end
+
+local function visual_line_range()
+  local a = vim.fn.line("v")
+  local b = vim.fn.line(".")
+  if a > b then
+    a, b = b, a
+  end
+  return a, b
+end
+
+local function exit_visual()
+  vim.api.nvim_feedkeys(
+    vim.api.nvim_replace_termcodes("<Esc>", true, false, true),
+    "n",
+    false
+  )
+end
+
+local function handle_done_visual()
+  local line1, line2 = visual_line_range()
+  exit_visual()
+  M.done_range(line1, line2)
+end
+
+local function archive_rows(rows)
+  if #rows == 0 then
+    return
+  end
+  local actions = require("agent-fleet.actions")
+  local archived, unarchived = 0, 0
+  for _, row in ipairs(rows) do
+    if actions.archive(row) then
+      archived = archived + 1
+    else
+      unarchived = unarchived + 1
+    end
+  end
   M.refresh()
-  notify("marked done \u{2014} " .. row.name)
+  if #rows == 1 then
+    notify((archived == 1 and "archived" or "unarchived") .. " \u{2014} " .. rows[1].name)
+    return
+  end
+  local parts = {}
+  if archived > 0 then
+    parts[#parts + 1] = "archived " .. archived
+  end
+  if unarchived > 0 then
+    parts[#parts + 1] = "unarchived " .. unarchived
+  end
+  notify(table.concat(parts, ", "))
+end
+
+function M.archive_range(line1, line2)
+  archive_rows(M.rows_in_range(line1, line2))
 end
 
 local function handle_archive()
@@ -197,9 +286,13 @@ local function handle_archive()
   if not row then
     return
   end
-  local now = require("agent-fleet.actions").archive(row)
-  M.refresh()
-  notify((now and "archived" or "unarchived") .. " \u{2014} " .. row.name)
+  archive_rows({ row })
+end
+
+local function handle_archive_visual()
+  local line1, line2 = visual_line_range()
+  exit_visual()
+  M.archive_range(line1, line2)
 end
 
 local function handle_rename()
@@ -217,18 +310,52 @@ local function handle_rename()
   end)
 end
 
+local function stop_rows(rows)
+  if #rows == 0 then
+    return
+  end
+  local actions = require("agent-fleet.actions")
+  local stopped = 0
+  local last
+  for _, row in ipairs(rows) do
+    if row.live then
+      actions.close_live(row)
+      stopped = stopped + 1
+      last = row
+    end
+  end
+  if stopped == 0 then
+    if #rows == 1 then
+      notify("not running \u{2014} " .. rows[1].name)
+    else
+      notify("no running agents in selection")
+    end
+    return
+  end
+  M.refresh()
+  if stopped == 1 then
+    notify("stopped \u{2014} " .. last.name)
+  else
+    notify("stopped \u{2014} " .. stopped .. " agents")
+  end
+end
+
+function M.stop_range(line1, line2)
+  stop_rows(M.rows_in_range(line1, line2))
+end
+
 local function handle_stop()
   local row = M.row_under_cursor()
   if not row then
     return
   end
-  if not row.live then
-    notify("not running \u{2014} " .. row.name)
-    return
-  end
-  require("agent-fleet.actions").close_live(row)
-  M.refresh()
-  notify("stopped \u{2014} " .. row.name)
+  stop_rows({ row })
+end
+
+local function handle_stop_visual()
+  local line1, line2 = visual_line_range()
+  exit_visual()
+  M.stop_range(line1, line2)
 end
 
 local function handle_toggle_archived()
@@ -253,9 +380,12 @@ local function set_keymaps(bufnr)
   local opts = { buffer = bufnr, nowait = true, silent = true, noremap = true }
   vim.keymap.set("n", "<CR>", handle_enter, opts)
   vim.keymap.set("n", "d", handle_done, opts)
+  vim.keymap.set("x", "d", handle_done_visual, opts)
   vim.keymap.set("n", "x", handle_archive, opts)
+  vim.keymap.set("x", "x", handle_archive_visual, opts)
   vim.keymap.set("n", "r", handle_rename, opts)
   vim.keymap.set("n", "s", handle_stop, opts)
+  vim.keymap.set("x", "s", handle_stop_visual, opts)
   vim.keymap.set("n", "a", handle_launch, opts)
   vim.keymap.set("n", "i", handle_launch_prompt, opts)
   vim.keymap.set("n", "A", handle_toggle_archived, opts)

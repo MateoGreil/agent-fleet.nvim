@@ -129,7 +129,7 @@ keys (`j`/`k`/`/`/`gg`); the per-row actions are:
 | Key | Action |
 | --- | ------ |
 | `<CR>` | switch to the agent under the cursor (focus its terminal if live, else resume `pi --session`) |
-| `d` | mark done (✓) — in visual line mode (`V`), marks every selected agent done at once |
+| `d` | mark done (✓) |
 | `x` | archive / unarchive |
 | `r` | rename (prompt) |
 | `s` | stop — kill the live terminal without marking it done (still resumable) |
@@ -140,9 +140,9 @@ keys (`j`/`k`/`/`/`gg`); the per-row actions are:
 
 Switching, `a` and `i` hand the board's window to the agent (the board buffer
 is wiped; reopen with `:AgentsBoard`). Action keys are no-ops on section
-headers. Select a span of rows with `V` (visual line) and press `d` to mark the
-whole selection done in one go. There is intentionally no `q` binding — leave the board with your
-usual buffer navigation.
+headers. `d`, `x` and `s` also work over a visual line selection (`V`): select a
+span of rows and the action applies to every agent in it at once. There is
+intentionally no `q` binding — leave the board with your usual buffer navigation.
 
 ## Configuration
 
