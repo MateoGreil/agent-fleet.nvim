@@ -143,6 +143,137 @@ function M.format_row(row, now_ms)
     .. suffix
 end
 
+local SECTION_ORDER = { "RUNNING", "IDLE", "DONE", "ARCHIVED" }
+local SECTION_GLYPH = {
+  RUNNING = "\u{25cf}",
+  IDLE = "\u{25cb}",
+  DONE = "\u{2713}",
+  ARCHIVED = "\u{25aa}",
+}
+local STATE_HL = {
+  working = "AgentFleetWorking",
+  idle = "AgentFleetIdle",
+  stopped = "AgentFleetStopped",
+  error = "AgentFleetError",
+  new = "AgentFleetNew",
+  unknown = "AgentFleetUnknown",
+}
+
+local function section_of(row)
+  if row.archived then
+    return "ARCHIVED"
+  elseif row.done then
+    return "DONE"
+  elseif row.live then
+    return "RUNNING"
+  end
+  return "IDLE"
+end
+
+local function pad_to(s, width)
+  local len = vim.fn.strchars(s)
+  if len < width then
+    return s .. string.rep(" ", width - len)
+  end
+  return s
+end
+
+local function truncate_name(name)
+  if vim.fn.strchars(name) > 28 then
+    return vim.fn.strcharpart(name, 0, 27) .. "\u{2026}"
+  end
+  return name
+end
+
+local function render_empty(opts, archived_in_rows)
+  local cwd = opts.cwd or ""
+  local archived_count = opts.archived_count or archived_in_rows or 0
+  local placeholder = "No agents in this directory."
+  if not opts.show_archived and archived_count > 0 then
+    placeholder = placeholder .. "  (" .. archived_count .. " archived \u{2014} press A to show)"
+  end
+  local lines = {
+    "agent-fleet \u{00b7} " .. cwd,
+    "",
+    placeholder,
+    "",
+    "press  a  to launch   \u{00b7}   i  to launch with a prompt",
+  }
+  local highlights = {
+    { line = 0, col_start = 0, col_end = -1, hl_group = "AgentFleetHeader" },
+  }
+  return { lines = lines, highlights = highlights, line_to_row = {} }
+end
+
+function M.render(rows, opts)
+  opts = opts or {}
+  local now_ms = opts.now_ms or (os.time() * 1000)
+  local show_archived = opts.show_archived or false
+
+  local buckets = { RUNNING = {}, IDLE = {}, DONE = {}, ARCHIVED = {} }
+  for _, row in ipairs(rows) do
+    local section = section_of(row)
+    buckets[section][#buckets[section] + 1] = row
+  end
+  local archived_in_rows = #buckets.ARCHIVED
+
+  local visible_count = #buckets.RUNNING + #buckets.IDLE + #buckets.DONE
+  if show_archived then
+    visible_count = visible_count + archived_in_rows
+  end
+  if visible_count == 0 then
+    return render_empty(opts, archived_in_rows)
+  end
+
+  local lines = {}
+  local highlights = {}
+  local line_to_row = {}
+
+  for _, section in ipairs(SECTION_ORDER) do
+    local section_rows = buckets[section]
+    if #section_rows > 0 and (section ~= "ARCHIVED" or show_archived) then
+      lines[#lines + 1] = SECTION_GLYPH[section] .. " " .. section .. "  " .. #section_rows
+      highlights[#highlights + 1] =
+        { line = #lines - 1, col_start = 0, col_end = -1, hl_group = "AgentFleetHeader" }
+
+      for _, row in ipairs(section_rows) do
+        local marker = row.live and "\u{25cf}" or "\u{25cb}"
+        local state = row.state or "new"
+        local state_col = pad_to(state, 8)
+        local name_col = pad_to(truncate_name(row.name), 28)
+        local time = (type(row.last_activity) == "number" and row.last_activity > 0)
+            and require("agent-fleet.util").relative_time(row.last_activity, now_ms)
+          or "\u{2014}"
+        lines[#lines + 1] = "  " .. marker .. " " .. state_col .. "  " .. name_col .. "  " .. time
+        local line0 = #lines - 1
+        line_to_row[#lines] = row
+
+        if section == "ARCHIVED" then
+          highlights[#highlights + 1] =
+            { line = line0, col_start = 0, col_end = -1, hl_group = "AgentFleetArchived" }
+        else
+          local state_start = #("  " .. marker .. " ")
+          highlights[#highlights + 1] = {
+            line = line0,
+            col_start = state_start,
+            col_end = state_start + #state,
+            hl_group = STATE_HL[state] or "AgentFleetNew",
+          }
+          local time_start = #("  " .. marker .. " " .. state_col .. "  " .. name_col .. "  ")
+          highlights[#highlights + 1] = {
+            line = line0,
+            col_start = time_start,
+            col_end = time_start + #time,
+            hl_group = "AgentFleetTime",
+          }
+        end
+      end
+    end
+  end
+
+  return { lines = lines, highlights = highlights, line_to_row = line_to_row }
+end
+
 function M.done_candidates(cwd)
   local rows = M.rows({ cwd = cwd or vim.fn.getcwd() })
   local result = {}
