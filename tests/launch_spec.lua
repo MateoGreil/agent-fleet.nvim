@@ -57,6 +57,42 @@ check("roster type == pi", e ~= nil and e.type == "pi")
 check("roster name matches", e ~= nil and e.name == "test-pi")
 check("roster cwd matches", e ~= nil and e.cwd == cwd_pi)
 
+config.setup({
+  agents = {
+    pi = {
+      cmd = "true",
+      session = { id_flag = "--session-id", name_flag = "--name", resume_flag = "--session" },
+    },
+  },
+  start_insert = false,
+})
+
+local orig_jobstart = vim.fn.jobstart
+local captured
+vim.fn.jobstart = function(argv, _)
+  captured = vim.deepcopy(argv)
+  return 1
+end
+
+agent.launch({ agent = "pi", name = "prompt-pi", cwd = cwd_pi, prompt = "hello world" })
+check("prompt appended as last argv element", captured ~= nil and captured[#captured] == "hello world")
+check(
+  "session flags precede the prompt",
+  captured ~= nil
+    and captured[#captured - 1] == "prompt-pi"
+    and captured[#captured - 4] == "--session-id"
+)
+
+captured = nil
+agent.launch({ agent = "pi", name = "noprompt-pi", cwd = cwd_pi })
+check("no prompt -> last argv element is the name", captured ~= nil and captured[#captured] == "noprompt-pi")
+
+captured = nil
+agent.launch({ agent = "pi", name = "empty-pi", cwd = cwd_pi, prompt = "   " })
+check("blank prompt is not appended", captured ~= nil and captured[#captured] == "empty-pi")
+
+vim.fn.jobstart = orig_jobstart
+
 local before = #roster.list({ include_archived = true })
 config.setup({ agents = { claude = { cmd = "true" } }, start_insert = false })
 local c = agent.launch({ agent = "claude", name = "test-claude", cwd = cwd_claude })

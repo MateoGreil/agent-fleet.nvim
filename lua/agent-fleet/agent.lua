@@ -67,7 +67,7 @@ local function spawn(argv, cwd, meta)
 end
 
 --- Launch a coding agent in a native terminal in the current window.
---- @param opts table|nil { agent?: string, name?: string, cwd?: string }
+--- @param opts table|nil { agent?: string, name?: string, cwd?: string, prompt?: string }
 --- @return table|nil agent
 function M.launch(opts)
   opts = opts or {}
@@ -92,6 +92,9 @@ function M.launch(opts)
   if def.session then
     session_id = require("agent-fleet.util").uuid()
     extra = { def.session.id_flag, session_id, def.session.name_flag, name }
+    if type(opts.prompt) == "string" and vim.trim(opts.prompt) ~= "" then
+      extra[#extra + 1] = opts.prompt
+    end
   end
 
   local agent = spawn(

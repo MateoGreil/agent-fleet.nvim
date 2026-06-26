@@ -201,6 +201,19 @@ local function handle_toggle_archived()
   M.refresh()
 end
 
+local function handle_launch()
+  require("agent-fleet").launch({})
+end
+
+local function handle_launch_prompt()
+  vim.ui.input({ prompt = "New agent prompt: " }, function(input)
+    input = input and vim.trim(input)
+    if input and input ~= "" then
+      require("agent-fleet").launch({ prompt = input })
+    end
+  end)
+end
+
 local function set_keymaps(bufnr)
   local opts = { buffer = bufnr, nowait = true, silent = true, noremap = true }
   vim.keymap.set("n", "<CR>", handle_enter, opts)
@@ -208,6 +221,8 @@ local function set_keymaps(bufnr)
   vim.keymap.set("n", "x", handle_archive, opts)
   vim.keymap.set("n", "r", handle_rename, opts)
   vim.keymap.set("n", "s", handle_stop, opts)
+  vim.keymap.set("n", "a", handle_launch, opts)
+  vim.keymap.set("n", "i", handle_launch_prompt, opts)
   vim.keymap.set("n", "A", handle_toggle_archived, opts)
   vim.keymap.set("n", "R", M.refresh, opts)
   vim.keymap.set("n", "gr", M.refresh, opts)

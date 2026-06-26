@@ -71,8 +71,57 @@ local cb = keymap_callbacks()
 for _, key in ipairs({ "<CR>", "d", "x", "r", "s", "A", "R", "gr" }) do
   check("keymap bound: " .. key, type(cb[key]) == "function")
 end
-check("launch key a not bound", cb["a"] == nil)
-check("launch key i not bound", cb["i"] == nil)
+check("launch key a bound", type(cb["a"]) == "function")
+check("launch key i bound", type(cb["i"]) == "function")
+
+-- Launch keymaps: stub agent-fleet.launch and vim.ui.input to capture intent
+local af = require("agent-fleet")
+local orig_launch = af.launch
+local launch_opts
+local launch_calls = 0
+af.launch = function(opts)
+  launch_calls = launch_calls + 1
+  launch_opts = opts
+  return nil
+end
+
+-- a -> launch with no prompt
+launch_opts = nil
+launch_calls = 0
+cb["a"]()
+check("a calls launch once", launch_calls == 1)
+check("a calls launch with no prompt", launch_opts ~= nil and launch_opts.prompt == nil)
+
+local orig_input = vim.ui.input
+
+-- i -> launch with the typed prompt
+launch_opts = nil
+launch_calls = 0
+vim.ui.input = function(_, on_confirm)
+  on_confirm("  do the thing  ")
+end
+cb["i"]()
+check("i calls launch once", launch_calls == 1)
+check("i passes trimmed prompt", launch_opts ~= nil and launch_opts.prompt == "do the thing")
+
+-- i with empty input -> launch not called
+launch_calls = 0
+vim.ui.input = function(_, on_confirm)
+  on_confirm("   ")
+end
+cb["i"]()
+check("i with blank input does not launch", launch_calls == 0)
+
+-- i cancelled (nil) -> launch not called
+launch_calls = 0
+vim.ui.input = function(_, on_confirm)
+  on_confirm(nil)
+end
+cb["i"]()
+check("i cancelled does not launch", launch_calls == 0)
+
+vim.ui.input = orig_input
+af.launch = orig_launch
 
 -- Case 2: row_under_cursor returns the right row on a content line
 cursor_to("alpha")
