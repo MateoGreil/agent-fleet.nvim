@@ -25,9 +25,10 @@ own nvim keybindings** — the thing PTY-attach dashboards take away from you.
 
 Built incrementally, feature by feature. Done so far:
 
-- **[x] Launch** — `:Agent [name]` launches the default agent in a terminal in
-  the current window; any arguments become the agent's name (auto-named when
-  omitted).
+- **[x] Launch** — `:Agent [prompt]` launches the default agent in a terminal in
+  the current window; any arguments become the agent's initial prompt. With no
+  arguments it asks for one via a `New agent prompt:` input (the same as the
+  board's `i` key). Agents are always auto-named.
 - **[x] Persistence & resume** — a roster on disk (`id → {type, name, cwd, …}`);
   `:Agent` assigns each pi agent a `--session-id <uuid>` + `--name` at launch and
   records it. `:AgentResume` reopens a past agent of the current directory —
@@ -101,8 +102,8 @@ Roadmap:
 ## Usage
 
 ```vim
-:Agent           " launch the default agent (auto-named) in the cwd
-:Agent fix auth  " launch the default agent named "fix auth"
+:Agent           " launch the default agent, prompting for an initial message (like the board's i)
+:Agent fix auth  " launch the default agent with "fix auth" as the initial prompt
 :AgentResume     " reopen a past agent of this directory (focus if live, else resume)
 :Agents          " list & switch agents of this directory (focus if live, else resume)
 :AgentsBoard     " open the live board buffer (sections, colors, per-row keymaps)

@@ -2,7 +2,6 @@ vim.opt.runtimepath:append("/home/mat/agent-fleet.nvim")
 vim.cmd("source /home/mat/agent-fleet.nvim/plugin/agent-fleet.lua")
 
 local config = require("agent-fleet.config")
-local roster = require("agent-fleet.roster")
 
 local out = {}
 local function check(name, cond)
@@ -28,38 +27,62 @@ local function setup()
   })
 end
 
-local function entries_for(cwd)
-  local matches = {}
-  for _, e in ipairs(roster.list({ include_archived = true })) do
-    if e.cwd == cwd then
-      matches[#matches + 1] = e
-    end
-  end
-  return matches
-end
-
 setup()
 
-local cwd_named = fresh_cwd()
-vim.fn.chdir(cwd_named)
+local orig_jobstart = vim.fn.jobstart
+local captured
+vim.fn.jobstart = function(argv, _)
+  captured = vim.deepcopy(argv)
+  return 1
+end
+
+-- :Agent <text> -> launch with the text as the initial prompt (last argv element)
+captured = nil
+vim.fn.chdir(fresh_cwd())
 vim.cmd("Agent fix auth module")
-local named = entries_for(cwd_named)
-check("named: exactly one entry", #named == 1)
-check("named: name is verbatim", named[1] ~= nil and named[1].name == "fix auth module")
+check("args: prompt appended as last argv element", captured ~= nil and captured[#captured] == "fix auth module")
 
-local cwd_default = fresh_cwd()
-vim.fn.chdir(cwd_default)
+-- :Agent (no args) -> prompt via vim.ui.input, launch with the typed prompt
+local orig_input = vim.ui.input
+captured = nil
+vim.ui.input = function(opts, on_confirm)
+  check("no args: shows the New agent prompt input", opts ~= nil and opts.prompt == "New agent prompt: ")
+  on_confirm("review the diff")
+end
+vim.fn.chdir(fresh_cwd())
 vim.cmd("Agent")
-local default = entries_for(cwd_default)
-check("default: exactly one entry", #default == 1)
-check("default: name matches <kind>-<seq>", default[1] ~= nil and default[1].name:match("^pi%-%d+$") ~= nil)
+check("no args: launches with the typed prompt", captured ~= nil and captured[#captured] == "review the diff")
 
-local cwd_ws = fresh_cwd()
-vim.fn.chdir(cwd_ws)
+-- :Agent (no args) with cancelled / blank input -> no launch
+captured = nil
+vim.ui.input = function(_, on_confirm)
+  on_confirm(nil)
+end
+vim.fn.chdir(fresh_cwd())
+vim.cmd("Agent")
+check("no args: cancelled input does not launch", captured == nil)
+
+captured = nil
+vim.ui.input = function(_, on_confirm)
+  on_confirm("   ")
+end
+vim.fn.chdir(fresh_cwd())
+vim.cmd("Agent")
+check("no args: blank input does not launch", captured == nil)
+
+-- :Agent with only whitespace args -> treated as no args (input dialog)
+captured = nil
+local prompted = false
+vim.ui.input = function(_, on_confirm)
+  prompted = true
+  on_confirm(nil)
+end
+vim.fn.chdir(fresh_cwd())
 vim.cmd("Agent    ")
-local ws = entries_for(cwd_ws)
-check("whitespace: exactly one entry", #ws == 1)
-check("whitespace: name falls back to default", ws[1] ~= nil and ws[1].name:match("^pi%-%d+$") ~= nil)
+check("whitespace args: falls back to the input dialog", prompted == true)
+
+vim.ui.input = orig_input
+vim.fn.jobstart = orig_jobstart
 
 vim.fn.writefile(out, os.getenv("AGENT_FLEET_TEST_OUT"))
 vim.cmd("qa!")
