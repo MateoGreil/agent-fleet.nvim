@@ -68,9 +68,14 @@ Roadmap:
   most-recently-active.
 - **[ ] Per-row preview** — show each agent's last assistant message (or a short
   snippet of it) inline in the board / a preview pane. Deferred.
-- **[ ] UI board** — a dedicated board buffer with per-row keybindings
-  (`<CR>` switch, `d` archive, `D` done) inspired by pi-agent-board, replacing
-  the `vim.ui.select` picker.
+- **[x] UI board** — `:AgentsBoard` opens a dedicated, live board buffer
+  listing this directory's agents in lifecycle sections (running / idle /
+  done / archived) with colored state, names and relative activity times.
+  Per-row keys: `<CR>` switch/open, `d` done, `x` archive, `r` rename, `s`
+  stop (kill the live terminal without filing it done), `a` launch, `i`
+  launch with a typed prompt, `A` toggle archived, `R`/`gr` refresh. It
+  re-renders on a timer while visible and reacts to agents exiting. The
+  `vim.ui.select` pickers (`:Agents`, `:AgentDone`, …) remain unchanged.
 - **[ ] Detached background mode (opt-in)** — when enabled, agents run under a
   PTY detacher (`abduco`/`dtach`) so closing nvim detaches them (they keep
   working) and reopening re-attaches them into buffers. Off by default to keep
@@ -93,6 +98,7 @@ Roadmap:
 :Agent fix auth  " launch the default agent named "fix auth"
 :AgentResume     " reopen a past agent of this directory (focus if live, else resume)
 :Agents          " list & switch agents of this directory (focus if live, else resume)
+:AgentsBoard     " open the live board buffer (sections, colors, per-row keymaps)
 :AgentDone       " mark an agent done (✓)
 :AgentArchive    " archive / unarchive an agent (hidden from :Agents by default)
 :AgentRename foo " rename the current agent (or pick one) to "foo"
@@ -101,6 +107,32 @@ Roadmap:
 
 Inside an agent terminal: `<C-\><C-n>` to enter Normal mode, then move / scroll /
 yank with your usual nvim keys. `i` / `a` to type to the agent again.
+
+### The board (`:AgentsBoard`)
+
+A dedicated, non-terminal buffer that opens in the current window and lists
+this directory's agents in lifecycle sections — **running**, **idle**, **done**,
+and (when toggled) **archived** — each row showing a live/dead marker, the
+derived state, the name, and a relative last-activity time. It re-renders on a
+timer while visible and reacts to agents exiting. Move with your normal nvim
+keys (`j`/`k`/`/`/`gg`); the per-row actions are:
+
+| Key | Action |
+| --- | ------ |
+| `<CR>` | switch to the agent under the cursor (focus its terminal if live, else resume `pi --session`) |
+| `d` | mark done (✓) |
+| `x` | archive / unarchive |
+| `r` | rename (prompt) |
+| `s` | stop — kill the live terminal without marking it done (still resumable) |
+| `a` | launch a new agent |
+| `i` | type a prompt, then launch a new agent started with it |
+| `A` | toggle the archived section |
+| `R` / `gr` | refresh now |
+
+Switching, `a` and `i` hand the board's window to the agent (the board buffer
+is wiped; reopen with `:AgentsBoard`). Action keys are no-ops on section
+headers. There is intentionally no `q` binding — leave the board with your
+usual buffer navigation.
 
 ## Configuration
 
@@ -113,6 +145,9 @@ require("agent-fleet").setup({
   },
   window = "enew",      -- where the agent terminal opens (see below)
   start_insert = true,  -- drop straight into terminal insert mode
+  board = {             -- the :AgentsBoard buffer
+    refresh_ms = 2000,  -- how often the open board re-renders
+  },
   auto_name = {         -- background auto-naming (off by default; see below)
     enabled = false,
     model = nil,        -- e.g. "openai/gpt-4o-mini"; required to do anything
@@ -163,6 +198,25 @@ fixed-width split.
 | `agents`        | pi, claude | Registry of agents (`key -> { cmd }`).         |
 | `window`        | `"enew"`| Ex command that opens the agent window.           |
 | `start_insert`  | `true`  | Enter terminal insert mode after launching.       |
+| `board.refresh_ms` | `2000` | How often (ms) the open `:AgentsBoard` re-renders. |
+
+### Board highlight groups
+
+The board defines these highlight groups, each linked to a standard group by
+default so it follows your colourscheme; override any with
+`vim.api.nvim_set_hl(0, "<group>", { … })`:
+
+| Group | Default link | Used for |
+| ----- | ------------ | -------- |
+| `AgentFleetWorking` | `DiagnosticInfo` | a working agent's state |
+| `AgentFleetIdle` | `Normal` | an idle agent's state |
+| `AgentFleetStopped` | `Comment` | a stopped agent's state |
+| `AgentFleetError` | `DiagnosticError` | an errored agent's state |
+| `AgentFleetNew` | `DiagnosticHint` | a brand-new agent's state |
+| `AgentFleetUnknown` | `NonText` | state older than the tail read |
+| `AgentFleetArchived` | `Comment` | archived rows (dimmed) |
+| `AgentFleetHeader` | `Title` | section headers and the empty-state title |
+| `AgentFleetTime` | `Comment` | the relative last-activity column |
 
 > Backward compat: a top-level `pi_cmd = "..."` still works and seeds the `pi`
 > agent's command.
