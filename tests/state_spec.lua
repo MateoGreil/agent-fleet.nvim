@@ -118,6 +118,7 @@ local fbig = write_fixture(big)
 check("big file exceeds 16KB", vim.loop.fs_stat(fbig).size > 16384)
 local i9 = sessions.tail_info(fbig)
 check("big file tail -> idle", i9 ~= nil and i9.state == "idle")
+check("big file message in tail -> not unknown", i9 ~= nil and i9.state ~= "unknown")
 check("big file last_activity == final ts", i9 ~= nil and i9.last_activity == ms_for(big_final_ts))
 
 local tail_only = {
@@ -134,7 +135,17 @@ end
 local ftail = write_fixture(tail_only)
 check("tail-only filler exceeds 16KB after message", vim.loop.fs_stat(ftail).size > 16384)
 local itail = sessions.tail_info(ftail)
-check("tail-only message outside last 16KB -> new", itail ~= nil and itail.state == "new")
+check("tail-only message outside last 16KB -> unknown", itail ~= nil and itail.state == "unknown")
+
+local small_no_msg = {
+  header("idsmall", "2026-05-15T00:00:00.000Z"),
+  event("model_change", "2026-05-15T00:00:01.000Z"),
+  event("thinking_level_change", "2026-05-15T00:00:02.000Z"),
+}
+local fsmall = write_fixture(small_no_msg)
+check("small no-message file under 16KB", vim.loop.fs_stat(fsmall).size <= 16384)
+local ismall = sessions.tail_info(fsmall)
+check("small no-message file (start==0) -> new", ismall ~= nil and ismall.state == "new")
 
 local now = 2000000000 * 1000
 check("rel now", util.relative_time(now - 30 * 1000, now) == "now")

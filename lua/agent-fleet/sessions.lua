@@ -121,6 +121,7 @@ function M.tail_info(file)
   end
   local size = fd:seek("end")
   local start = math.max(0, size - CHUNK)
+  local from_start = (start == 0)
   fd:seek("set", start)
   local chunk = fd:read("*a") or ""
   fd:close()
@@ -151,7 +152,7 @@ function M.tail_info(file)
   end
 
   return {
-    state = state or "new",
+    state = state or (from_start and "new" or "unknown"),
     last_activity = last_activity or mtime_ms(file),
   }
 end

@@ -131,10 +131,12 @@ function M.format_row(row, now_ms)
   local state = row.state or "new"
   local state_col = state .. string.rep(" ", math.max(0, 8 - #state))
   local name = row.name
-  if #name > 22 then
-    name = name:sub(1, 21) .. "\u{2026}"
+  if vim.fn.strchars(name) > 22 then
+    name = vim.fn.strcharpart(name, 0, 21) .. "\u{2026}"
   end
-  local time = require("agent-fleet.util").relative_time(row.last_activity or 0, now_ms)
+  local time = (row.last_activity and row.last_activity > 0)
+      and require("agent-fleet.util").relative_time(row.last_activity, now_ms)
+    or "\u{2014}"
   local suffix = row.done and "  \u{2713}" or ""
   return prefix
     .. string.format("%s  %s  %s  \u{00b7}  %s", marker, state_col, name, time)

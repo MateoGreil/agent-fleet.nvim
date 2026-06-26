@@ -41,7 +41,8 @@ Built incrementally, feature by feature. Done so far:
   renames an agent (the current agent's buffer, or a picked one). `:AgentDone` /
   `:AgentArchive` also act on the current agent's buffer, closing (killing) its
   terminal when live. Each row shows a derived state
-  (`idle`/`working`/`stopped`/`error`/`new`, tailed from the session `.jsonl`)
+  (`idle`/`working`/`stopped`/`error`/`new`/`unknown` — `unknown` meaning the
+  state is older than the bounded tail read — tailed from the session `.jsonl`)
   and a relative last-activity time (`now`/`5m`/`3h`/`2d`/`3w`); the board is
   sorted by most-recently-active first (within the live / done / archived
   grouping).
@@ -61,9 +62,10 @@ Roadmap:
   that were live when you quit. Off by default (manual resume from the board is
   the better default); a config flag on top of the roster.
 - **[x] Live agent state** — derive `idle` / `working` / `stopped` / `error` /
-  `new` for every agent by tailing its session `.jsonl` (tail-bounded read, no
-  whole-file scan), shown alongside a relative last-activity time, and the board
-  is re-sorted by most-recently-active.
+  `new` / `unknown` (state older than the bounded tail read) for every agent by
+  tailing its session `.jsonl` (tail-bounded read, no whole-file scan), shown
+  alongside a relative last-activity time, and the board is re-sorted by
+  most-recently-active.
 - **[ ] Per-row preview** — show each agent's last assistant message (or a short
   snippet of it) inline in the board / a preview pane. Deferred.
 - **[ ] UI board** — a dedicated board buffer with per-row keybindings

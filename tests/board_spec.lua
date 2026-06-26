@@ -256,5 +256,37 @@ check(
     and s_long:find(long_name, 1, true) == nil
 )
 
+local accent_name = string.rep("\u{e9}", 30)
+local row_accent = {
+  id = "f4",
+  name = accent_name,
+  cwd = "/p",
+  live = false,
+  done = false,
+  archived = false,
+  state = "new",
+  last_activity = NOW,
+}
+local s_accent = board.format_row(row_accent, NOW)
+check(
+  "case9 multibyte name truncated on codepoint boundary",
+  s_accent:find(string.rep("\u{e9}", 21) .. "\u{2026}", 1, true) ~= nil
+    and s_accent:find(accent_name, 1, true) == nil
+)
+
+local row_zero = {
+  id = "f5",
+  name = "n",
+  cwd = "/p",
+  live = false,
+  done = false,
+  archived = false,
+  state = "new",
+  last_activity = 0,
+}
+local s_zero = board.format_row(row_zero, NOW)
+check("case9 zero activity renders em-dash", s_zero:find("\u{2014}", 1, true) ~= nil)
+check("case9 zero activity no bogus week count", s_zero:find("%d+w") == nil)
+
 vim.fn.writefile(out, os.getenv("AGENT_FLEET_TEST_OUT"))
 vim.cmd("qa!")
