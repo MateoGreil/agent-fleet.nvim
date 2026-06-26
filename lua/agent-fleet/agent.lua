@@ -108,7 +108,7 @@ function M.launch(opts)
 
   if session_id then
     require("agent-fleet.roster").add({ id = session_id, type = kind, name = name, cwd = cwd, auto_named = auto_named })
-    require("agent-fleet.autoname").arm(agent)
+    require("agent-fleet.autoname").name_from_prompt(agent, opts.prompt)
   end
 
   return agent

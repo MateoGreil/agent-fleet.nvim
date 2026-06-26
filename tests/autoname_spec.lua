@@ -18,8 +18,8 @@ check("auto_name table present", type(an) == "table")
 check("auto_name.enabled false", an.enabled == false)
 check("auto_name.model nil", an.model == nil)
 check("auto_name.thinking off", an.thinking == "off")
-check("auto_name.poll_interval_ms 3000", an.poll_interval_ms == 3000)
-check("auto_name.poll_timeout_ms 120000", an.poll_timeout_ms == 120000)
+check("auto_name.poll_interval_ms removed", an.poll_interval_ms == nil)
+check("auto_name.poll_timeout_ms removed", an.poll_timeout_ms == nil)
 check("auto_name.namer_timeout_ms 30000", an.namer_timeout_ms == 30000)
 check("auto_name.max_chars 2000", an.max_chars == 2000)
 
@@ -82,57 +82,10 @@ check("live manual rename clears live agent auto_named", agent.agents[91].auto_n
 
 -- autoname pure helpers
 
-local function write_jsonl(lines)
-  local path = vim.fn.tempname()
-  vim.fn.writefile(lines, path)
-  return path
-end
-
-local function header_line()
-  return vim.json.encode({ type = "session", version = 3, id = "x", cwd = "/p" })
-end
-
-local function user_msg(content)
-  return vim.json.encode({ type = "message", message = { role = "user", content = content } })
-end
-
-local function assistant_msg(content)
-  return vim.json.encode({ type = "message", message = { role = "assistant", content = content } })
-end
-
 check("system_prompt is string", type(autoname.system_prompt) == "string" and #autoname.system_prompt > 0)
 
-local f_list = write_jsonl({ header_line(), user_msg({ { type = "text", text = "fix the login bug" } }) })
-check("first_user_text list content", autoname.first_user_text(f_list, 2000) == "fix the login bug")
-
-local f_multi = write_jsonl({
-  header_line(),
-  user_msg({ { type = "text", text = "add" }, { type = "text", text = "dark mode" } }),
-})
-check("first_user_text multiple text blocks", autoname.first_user_text(f_multi, 2000) == "add dark mode")
-
-local f_str = write_jsonl({ header_line(), user_msg("refactor auth") })
-check("first_user_text string content", autoname.first_user_text(f_str, 2000) == "refactor auth")
-
-local f_first = write_jsonl({
-  header_line(),
-  assistant_msg({ { type = "text", text = "i am the assistant" } }),
-  user_msg({ { type = "text", text = "first user message" } }),
-  user_msg({ { type = "text", text = "second user message" } }),
-})
-check("first_user_text picks first user", autoname.first_user_text(f_first, 2000) == "first user message")
-
-local long = "this is a very long user message that goes well past the limit"
-local f_trunc = write_jsonl({ header_line(), user_msg({ { type = "text", text = long } }) })
-local trunc = autoname.first_user_text(f_trunc, 10)
-check("first_user_text truncation length", trunc ~= nil and #trunc == 10)
-check("first_user_text truncation prefix", trunc == string.sub(long, 1, 10))
-
-local f_none = write_jsonl({ header_line(), assistant_msg({ { type = "text", text = "only assistant" } }) })
-check("first_user_text no user message", autoname.first_user_text(f_none, 2000) == nil)
-
-check("first_user_text missing file", autoname.first_user_text(vim.fn.tempname(), 2000) == nil)
-check("first_user_text nil file", autoname.first_user_text(nil, 2000) == nil)
+check("first_user_text removed", autoname.first_user_text == nil)
+check("locate_file removed", autoname.locate_file == nil)
 
 check("sanitize plain", autoname.sanitize("fix auth bug", 5, 100) == "fix auth bug")
 check("sanitize double quotes", autoname.sanitize('"fix auth"', 5, 100) == "fix auth")
@@ -225,56 +178,68 @@ roster.set_auto_named(id_ren, false)
 autoname.apply_name(id_ren, "Some Name")
 check("apply_name already-renamed no-op", roster.get(id_ren).name == "keepme2")
 
--- autoname.arm end-to-end with injected runner
-local tmp_dir = vim.fn.tempname()
-vim.fn.mkdir(tmp_dir, "p")
+-- autoname.name_from_prompt end-to-end with injected runner
 config.setup({
   auto_name = {
     enabled = true,
     model = "fake/model",
-    poll_interval_ms = 10,
-    poll_timeout_ms = 2000,
     namer_timeout_ms = 1000,
     max_chars = 2000,
     thinking = "off",
   },
-  sessions_dir = tmp_dir,
   agents = {
     pi = { cmd = "true", session = { id_flag = "--session-id", name_flag = "--name", resume_flag = "--session" } },
   },
   start_insert = false,
 })
-local sessions = require("agent-fleet.sessions")
 local id_arm = "arm-e2e-00000001"
 local cwd_arm = "/home/test/proj"
-local arm_dir = tmp_dir .. "/" .. sessions.cwd_slug(cwd_arm)
-vim.fn.mkdir(arm_dir, "p")
-local arm_file = arm_dir .. "/20260101_120000_" .. id_arm .. ".jsonl"
-vim.fn.writefile({
-  vim.json.encode({ type = "session", version = 3, id = id_arm, cwd = cwd_arm }),
-  vim.json.encode({
-    type = "message",
-    message = { role = "user", content = { { type = "text", text = "add billing export" } } },
-  }),
-}, arm_file)
 roster.add({ id = id_arm, type = "pi", name = "pi-9", cwd = cwd_arm, auto_named = true })
 local buf_arm = vim.api.nvim_create_buf(false, true)
 agent.agents[801] =
   { session_id = id_arm, bufnr = buf_arm, cwd = cwd_arm, name = "pi-9", auto_named = true, agent = "pi" }
 local saved_runner = autoname.runner
-autoname.runner = function(_argv, _cwd, _timeout, cb)
+local seen_prompt
+autoname.runner = function(argv, _cwd, _timeout, cb)
+  for i, v in ipairs(argv) do
+    if v == "-p" then
+      seen_prompt = argv[i + 1]
+    end
+  end
   cb("Billing Export")
 end
-autoname.arm({ session_id = id_arm, cwd = cwd_arm, agent = "pi", auto_named = true })
+autoname.name_from_prompt(
+  { session_id = id_arm, cwd = cwd_arm, agent = "pi", auto_named = true },
+  "add billing export"
+)
 vim.wait(800, function()
   return roster.get(id_arm).name == "Billing Export"
 end)
 autoname.runner = saved_runner
-check("arm e2e renamed", roster.get(id_arm).name == "Billing Export")
-check("arm e2e preserves auto_named", roster.get(id_arm).auto_named == true)
+check("name_from_prompt e2e renamed", roster.get(id_arm).name == "Billing Export")
+check("name_from_prompt e2e preserves auto_named", roster.get(id_arm).auto_named == true)
+check("name_from_prompt passes prompt to namer", seen_prompt == "add billing export")
 agent.agents[801] = nil
 
--- autoname.arm disabled -> runner never called
+-- name_from_prompt without a prompt -> runner never called (keeps numbered name)
+local no_prompt_called = false
+local saved_runner_np = autoname.runner
+autoname.runner = function()
+  no_prompt_called = true
+end
+local id_np = "arm-noprompt-00000001"
+roster.add({ id = id_np, type = "pi", name = "pi-7", cwd = "/p", auto_named = true })
+agent.agents[803] =
+  { session_id = id_np, bufnr = vim.api.nvim_create_buf(false, true), cwd = "/p", name = "pi-7", auto_named = true, agent = "pi" }
+autoname.name_from_prompt({ session_id = id_np, cwd = "/p", agent = "pi", auto_named = true }, nil)
+autoname.name_from_prompt({ session_id = id_np, cwd = "/p", agent = "pi", auto_named = true }, "   ")
+vim.wait(50)
+autoname.runner = saved_runner_np
+check("name_from_prompt no prompt runner not called", no_prompt_called == false)
+check("name_from_prompt no prompt keeps name", roster.get(id_np).name == "pi-7")
+agent.agents[803] = nil
+
+-- name_from_prompt disabled -> runner never called
 config.setup({
   auto_name = { enabled = false },
   agents = {
@@ -291,11 +256,11 @@ local id_dis = "arm-disabled-00000001"
 roster.add({ id = id_dis, type = "pi", name = "pi-d", cwd = "/p", auto_named = true })
 agent.agents[802] =
   { session_id = id_dis, bufnr = vim.api.nvim_create_buf(false, true), cwd = "/p", name = "pi-d", auto_named = true, agent = "pi" }
-autoname.arm({ session_id = id_dis, cwd = "/p", agent = "pi", auto_named = true })
-vim.wait(100)
+autoname.name_from_prompt({ session_id = id_dis, cwd = "/p", agent = "pi", auto_named = true }, "do a thing")
+vim.wait(50)
 autoname.runner = saved_runner2
-check("arm disabled runner not called", disabled_called == false)
-check("arm disabled no rename", roster.get(id_dis).name == "pi-d")
+check("disabled runner not called", disabled_called == false)
+check("disabled no rename", roster.get(id_dis).name == "pi-d")
 agent.agents[802] = nil
 
 vim.fn.writefile(out, os.getenv("AGENT_FLEET_TEST_OUT"))

@@ -29,8 +29,6 @@ M.defaults = {
   auto_name = {
     enabled = false,
     thinking = "off",
-    poll_interval_ms = 3000,
-    poll_timeout_ms = 120000,
     namer_timeout_ms = 30000,
     max_chars = 2000,
   },

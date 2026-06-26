@@ -7,63 +7,6 @@ M._warned_no_model = false
 M.system_prompt =
   "You name coding-agent sessions. Given the task description below, reply with ONLY a short name of 2 to 5 words that describes the task. No quotes, no trailing punctuation, no explanation, no full sentence — just the name."
 
-local function extract_text(content)
-  if type(content) == "string" then
-    return content
-  end
-  if type(content) ~= "table" then
-    return nil
-  end
-  local parts = {}
-  for _, block in ipairs(content) do
-    if type(block) == "table" and type(block.text) == "string" then
-      parts[#parts + 1] = block.text
-    end
-  end
-  if #parts == 0 then
-    return nil
-  end
-  return table.concat(parts, " ")
-end
-
-function M.first_user_text(file, max_chars)
-  if not file then
-    return nil
-  end
-  local fd = io.open(file, "r")
-  if not fd then
-    return nil
-  end
-
-  local text
-  for line in fd:lines() do
-    local ok, entry = pcall(vim.json.decode, line)
-    if
-      ok
-      and type(entry) == "table"
-      and entry.type == "message"
-      and type(entry.message) == "table"
-      and entry.message.role == "user"
-    then
-      text = extract_text(entry.message.content)
-      break
-    end
-  end
-  fd:close()
-
-  if type(text) ~= "string" then
-    return nil
-  end
-  text = vim.trim(text)
-  if text == "" then
-    return nil
-  end
-  if max_chars and max_chars > 0 then
-    text = string.sub(text, 1, max_chars)
-  end
-  return text
-end
-
 function M.sanitize(raw, max_words, max_chars)
   if raw == nil then
     return nil
@@ -157,14 +100,6 @@ function M.eligible(agent, cfg)
   return true
 end
 
-function M.locate_file(session_id, sessions_dir)
-  local matches = vim.fn.glob(sessions_dir .. "/**/*_" .. session_id .. ".jsonl", true, true)
-  if #matches == 0 then
-    return nil
-  end
-  return matches[1]
-end
-
 function M.apply_name(session_id, raw)
   local name = M.sanitize(raw, M.max_name_words, M.max_name_chars)
   if not name then
@@ -239,7 +174,7 @@ function M.runner(argv, cwd, timeout_ms, cb)
   end)
 end
 
-function M.arm(agent)
+function M.name_from_prompt(agent, prompt)
   local cfg = require("agent-fleet.config").get()
 
   if not M.eligible(agent, cfg) then
@@ -258,49 +193,25 @@ function M.arm(agent)
     return
   end
 
-  local interval = cfg.auto_name.poll_interval_ms
-  local timeout = cfg.auto_name.poll_timeout_ms
-  local elapsed = 0
+  if type(prompt) ~= "string" then
+    return
+  end
+  prompt = vim.trim(prompt)
+  if prompt == "" then
+    return
+  end
+  local max_chars = cfg.auto_name.max_chars
+  if max_chars and max_chars > 0 then
+    prompt = string.sub(prompt, 1, max_chars)
+  end
 
-  local timer
-  timer = vim.fn.timer_start(interval, function()
-    local ok = pcall(function()
-      local agent_mod = require("agent-fleet.agent")
-      local live
-      for _, a in pairs(agent_mod.agents) do
-        if a.session_id == agent.session_id then
-          live = a
-          break
-        end
-      end
-      if not live or live.auto_named ~= true then
-        pcall(vim.fn.timer_stop, timer)
-        return
-      end
-
-      elapsed = elapsed + interval
-      if elapsed >= timeout then
-        pcall(vim.fn.timer_stop, timer)
-        return
-      end
-
-      local file = M.locate_file(agent.session_id, cfg.sessions_dir)
-      local prompt = file and M.first_user_text(file, cfg.auto_name.max_chars)
-      if type(prompt) == "string" and prompt ~= "" then
-        pcall(vim.fn.timer_stop, timer)
-        local pi_cmd = cfg.agents[agent.agent].cmd
-        local argv = M.build_argv(pi_cmd, prompt, M.system_prompt, cfg.auto_name.model, cfg.auto_name.thinking)
-        M.runner(argv, agent.cwd, cfg.auto_name.namer_timeout_ms, function(raw)
-          if raw then
-            M.apply_name(agent.session_id, raw)
-          end
-        end)
-      end
-    end)
-    if not ok then
-      pcall(vim.fn.timer_stop, timer)
+  local pi_cmd = cfg.agents[agent.agent].cmd
+  local argv = M.build_argv(pi_cmd, prompt, M.system_prompt, cfg.auto_name.model, cfg.auto_name.thinking)
+  M.runner(argv, agent.cwd, cfg.auto_name.namer_timeout_ms, function(raw)
+    if raw then
+      M.apply_name(agent.session_id, raw)
     end
-  end, { ["repeat"] = -1 })
+  end)
 end
 
 return M

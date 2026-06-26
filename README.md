@@ -47,12 +47,13 @@ Built incrementally, feature by feature. Done so far:
   and a relative last-activity time (`now`/`5m`/`3h`/`2d`/`3w`); the board is
   sorted by most-recently-active first (within the live / done / archived
   grouping).
-- **[x] Background auto-naming (opt-in)** — a pi agent launched **without** a
-  name can be renamed automatically in the background: the plugin polls the
-  session `.jsonl` until the first user message lands, asks a lightweight
-  one-shot `pi` namer to summarize it, and renames the agent (still flagged as
-  machine-named, so a later manual `:AgentRename` wins). Off by default; enable
-  with `auto_name.enabled = true` and set `auto_name.model`.
+- **[x] Background auto-naming (opt-in)** — a pi agent launched with an initial
+  prompt (board `i`, `:Agent <prompt>`) but **without** a name can be renamed
+  automatically: the plugin hands that prompt to a lightweight one-shot `pi`
+  namer to summarize it, then renames the agent (still flagged as
+  machine-named, so a later manual `:AgentRename` wins). Agents launched without
+  a prompt keep their numbered default name. Off by default; enable with
+  `auto_name.enabled = true` and set `auto_name.model`.
 
 Roadmap:
 
@@ -128,7 +129,7 @@ keys (`j`/`k`/`/`/`gg`); the per-row actions are:
 | Key | Action |
 | --- | ------ |
 | `<CR>` | switch to the agent under the cursor (focus its terminal if live, else resume `pi --session`) |
-| `d` | mark done (✓) |
+| `d` | mark done (✓) — in visual line mode (`V`), marks every selected agent done at once |
 | `x` | archive / unarchive |
 | `r` | rename (prompt) |
 | `s` | stop — kill the live terminal without marking it done (still resumable) |
@@ -139,7 +140,8 @@ keys (`j`/`k`/`/`/`gg`); the per-row actions are:
 
 Switching, `a` and `i` hand the board's window to the agent (the board buffer
 is wiped; reopen with `:AgentsBoard`). Action keys are no-ops on section
-headers. There is intentionally no `q` binding — leave the board with your
+headers. Select a span of rows with `V` (visual line) and press `d` to mark the
+whole selection done in one go. There is intentionally no `q` binding — leave the board with your
 usual buffer navigation.
 
 ## Configuration
@@ -231,11 +233,12 @@ default so it follows your colourscheme; override any with
 
 ### `auto_name` — background auto-naming
 
-When a **pi** agent is launched without a name (`:Agent` with no argument), the
-plugin can rename it in the background once you've sent your first message: it
-polls the session `.jsonl` until the first user message appears, runs a
-lightweight one-shot `pi` namer (no tools, no session, no extensions) on that
-text, sanitizes the reply to a short name, and applies it. The agent stays
+When a **pi** agent is launched with an initial prompt but without a name (board
+`i`, or `:Agent <prompt>`), the plugin can rename it from that prompt: it runs a
+lightweight one-shot `pi` namer (no tools, no session, no extensions) on the
+prompt text, sanitizes the reply to a short name, and applies it. There is no
+polling — the prompt we launched with is used directly. An agent launched
+without a prompt keeps its numbered default name. The agent stays
 machine-named, so a manual `:AgentRename` always takes precedence and is never
 overwritten.
 
@@ -247,8 +250,6 @@ auto_name = {
   enabled = false,        -- master switch
   model = nil,            -- model the namer runs with (required, e.g. "openai/gpt-4o-mini")
   thinking = "off",       -- pi --thinking value for the namer
-  poll_interval_ms = 3000,   -- how often to poll the session file for the first user message
-  poll_timeout_ms = 120000,  -- give up polling after this long (keeps the default name)
   namer_timeout_ms = 30000,  -- kill the namer subprocess after this long
   max_chars = 2000,          -- cap the prompt text sent to the namer
 }
@@ -259,8 +260,6 @@ auto_name = {
 | `enabled`          | `false`   | Master switch for background auto-naming.                |
 | `model`            | `nil`     | Model the one-shot namer runs with. Required.            |
 | `thinking`         | `"off"`   | `pi --thinking` value for the namer.                     |
-| `poll_interval_ms` | `3000`    | Poll cadence for the first user message.                 |
-| `poll_timeout_ms`  | `120000`  | Stop polling after this long (keeps the default name).   |
 | `namer_timeout_ms` | `30000`   | Kill the namer subprocess after this long.               |
 | `max_chars`        | `2000`    | Cap on the prompt text sent to the namer.                |
 
