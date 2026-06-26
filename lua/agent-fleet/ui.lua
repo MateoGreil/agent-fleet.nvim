@@ -18,7 +18,10 @@ local state = {
   ns = nil,
   show_archived = false,
   line_to_row = {},
+  timer = nil,
 }
+
+M._state = state
 
 function M.define_highlights()
   for name, target in pairs(HL_LINKS) do
@@ -228,6 +231,58 @@ local function set_keymaps(bufnr)
   vim.keymap.set("n", "gr", M.refresh, opts)
 end
 
+local function stop_timer()
+  if state.timer then
+    pcall(function()
+      state.timer:stop()
+      state.timer:close()
+    end)
+    state.timer = nil
+  end
+end
+
+local function start_timer()
+  stop_timer()
+  local interval = require("agent-fleet.config").get().board.refresh_ms
+  local timer = vim.uv.new_timer()
+  state.timer = timer
+  timer:start(interval, interval, function()
+    vim.schedule(function()
+      local bufnr = state.bufnr
+      if not (bufnr and vim.api.nvim_buf_is_valid(bufnr)) then
+        stop_timer()
+        return
+      end
+      if window_showing(bufnr) then
+        M.refresh()
+      end
+    end)
+  end)
+end
+
+local function set_autocmds(bufnr)
+  vim.api.nvim_create_autocmd("BufWipeout", {
+    buffer = bufnr,
+    once = true,
+    callback = function()
+      stop_timer()
+      state.bufnr = nil
+      state.line_to_row = {}
+    end,
+  })
+
+  local group = vim.api.nvim_create_augroup("AgentFleetBoardTermClose", { clear = true })
+  vim.api.nvim_create_autocmd("TermClose", {
+    group = group,
+    callback = function()
+      local b = state.bufnr
+      if b and vim.api.nvim_buf_is_valid(b) and window_showing(b) then
+        M.refresh()
+      end
+    end,
+  })
+end
+
 function M.open()
   if state.bufnr and vim.api.nvim_buf_is_valid(state.bufnr) then
     local win = window_showing(state.bufnr)
@@ -255,7 +310,9 @@ function M.open()
 
   M.define_highlights()
   set_keymaps(bufnr)
+  set_autocmds(bufnr)
   render_into(bufnr)
+  start_timer()
 end
 
 return M

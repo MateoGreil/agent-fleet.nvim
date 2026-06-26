@@ -114,5 +114,45 @@ local elines = vim.api.nvim_buf_get_lines(ebuf, 0, -1, false)
 check("empty state placeholder", lines_have(elines, "No agents in this directory."))
 check("empty state title", lines_have(elines, "agent-fleet"))
 
+-- Case 7: board.refresh_ms default present
+check("board.refresh_ms default is 2000", config.get().board.refresh_ms == 2000)
+
+-- Case 8: open starts a libuv timer stored in module state
+check("open starts a timer handle", ui._state.timer ~= nil)
+
+-- Case 9: TermClose autocmd registered under the named augroup
+local term_autocmds = vim.api.nvim_get_autocmds({ event = "TermClose", group = "AgentFleetBoardTermClose" })
+check("TermClose autocmd registered", #term_autocmds >= 1)
+
+-- Case 10: a manual refresh reflects current roster state (what TermClose triggers)
+local idC = "cccccccc-cccc-cccc-cccc-cccccccccccc"
+roster.add({ id = idC, type = "pi", name = "gamma", cwd = EMPTY, created_at = 3000 })
+ui.refresh()
+local rlines = vim.api.nvim_buf_get_lines(ebuf, 0, -1, false)
+check("refresh reflects newly added agent", lines_have(rlines, "gamma"))
+
+-- Case 11: BufWipeout stops the timer and clears module state, no error
+local ok_wipe = pcall(vim.api.nvim_buf_delete, ebuf, { force = true })
+vim.wait(50, function() return false end)
+check("wipeout did not error", ok_wipe)
+check("wipeout clears timer handle", ui._state.timer == nil)
+check("wipeout clears bufnr", ui._state.bufnr == nil)
+
+-- Case 12: the timer actually ticks a refresh. Uses a short configured
+-- interval and a generous wait budget (250ms for a 50ms timer => ~4 ticks),
+-- so it is not sensitive to scheduler jitter (passing needs only >=1 tick).
+config.setup({ sessions_dir = TMP, board = { refresh_ms = 50 } })
+vim.cmd("enew")
+ui.open()
+local orig_refresh = ui.refresh
+local tick_count = 0
+ui.refresh = function(...)
+  tick_count = tick_count + 1
+  return orig_refresh(...)
+end
+vim.wait(250, function() return false end)
+ui.refresh = orig_refresh
+check("timer ticks at least one refresh", tick_count >= 1)
+
 vim.fn.writefile(out, os.getenv("AGENT_FLEET_TEST_OUT"))
 vim.cmd("qa!")

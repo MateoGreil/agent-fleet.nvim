@@ -20,6 +20,11 @@ M.defaults = {
   start_insert = true,
   -- Base directory scanned to locate pi session files for resume.
   sessions_dir = vim.fn.expand("~/.pi/agent/sessions"),
+  -- Board UI behaviour.
+  board = {
+    -- How often (ms) the open board re-renders to reflect live agent state.
+    refresh_ms = 2000,
+  },
   -- Opt-in background auto-rename for agents launched without a name.
   auto_name = {
     enabled = false,
