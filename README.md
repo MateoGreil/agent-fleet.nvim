@@ -76,6 +76,13 @@ Roadmap:
   launch with a typed prompt, `A` toggle archived, `R`/`gr` refresh. It
   re-renders on a timer while visible and reacts to agents exiting. The
   `vim.ui.select` pickers (`:Agents`, `:AgentDone`, …) remain unchanged.
+- **[ ] Persistent board buffer (return with `<C-o>`)** — today the board is
+  `bufhidden=wipe`, so pressing `<CR>` to enter an agent destroys it and
+  `<C-o>` can't jump back (you reopen with `:AgentsBoard` / `<leader>ab`).
+  Switch it to `bufhidden=hide` so the board persists and `<C-o>` / `<C-^>`
+  return to it; reuse the hidden buffer on reopen, and pause/resume the
+  refresh timer when the board is hidden/shown (the teardown currently keys
+  off `BufWipeout`).
 - **[ ] Detached background mode (opt-in)** — when enabled, agents run under a
   PTY detacher (`abduco`/`dtach`) so closing nvim detaches them (they keep
   working) and reopening re-attaches them into buffers. Off by default to keep
