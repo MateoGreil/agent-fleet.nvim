@@ -138,6 +138,15 @@ check("wipeout did not error", ok_wipe)
 check("wipeout clears timer handle", ui._state.timer == nil)
 check("wipeout clears bufnr", ui._state.bufnr == nil)
 
+-- Case 11b: BufWipeout resets show_archived to its default
+vim.cmd("enew")
+ui.open()
+local abuf = vim.api.nvim_get_current_buf()
+ui._state.show_archived = true
+vim.api.nvim_buf_delete(abuf, { force = true })
+vim.wait(50, function() return false end)
+check("wipeout resets show_archived to false", ui._state.show_archived == false)
+
 -- Case 12: the timer actually ticks a refresh. Uses a short configured
 -- interval and a generous wait budget (250ms for a 50ms timer => ~4 ticks),
 -- so it is not sensitive to scheduler jitter (passing needs only >=1 tick).

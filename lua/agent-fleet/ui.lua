@@ -7,7 +7,6 @@ local HL_LINKS = {
   AgentFleetError = "DiagnosticError",
   AgentFleetNew = "DiagnosticHint",
   AgentFleetUnknown = "NonText",
-  AgentFleetDone = "DiagnosticOk",
   AgentFleetArchived = "Comment",
   AgentFleetHeader = "Title",
   AgentFleetTime = "Comment",
@@ -268,6 +267,7 @@ local function set_autocmds(bufnr)
       stop_timer()
       state.bufnr = nil
       state.line_to_row = {}
+      state.show_archived = false
     end,
   })
 
