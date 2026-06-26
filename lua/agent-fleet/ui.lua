@@ -122,6 +122,97 @@ function M.refresh()
   pcall(vim.api.nvim_win_set_cursor, win, { target, 0 })
 end
 
+function M.row_under_cursor()
+  local bufnr = state.bufnr
+  if not (bufnr and vim.api.nvim_buf_is_valid(bufnr)) then
+    return nil
+  end
+  local win = window_showing(bufnr)
+  if not win then
+    return nil
+  end
+  local line = vim.api.nvim_win_get_cursor(win)[1]
+  return state.line_to_row[line]
+end
+
+local function notify(msg)
+  vim.notify("agent-fleet: " .. msg, vim.log.levels.INFO)
+end
+
+local function handle_enter()
+  local row = M.row_under_cursor()
+  if not row then
+    return
+  end
+  require("agent-fleet.agent").resume_session({ id = row.id, cwd = row.cwd, type = "pi" })
+end
+
+local function handle_done()
+  local row = M.row_under_cursor()
+  if not row then
+    return
+  end
+  require("agent-fleet.actions").done(row)
+  M.refresh()
+  notify("marked done \u{2014} " .. row.name)
+end
+
+local function handle_archive()
+  local row = M.row_under_cursor()
+  if not row then
+    return
+  end
+  local now = require("agent-fleet.actions").archive(row)
+  M.refresh()
+  notify((now and "archived" or "unarchived") .. " \u{2014} " .. row.name)
+end
+
+local function handle_rename()
+  local row = M.row_under_cursor()
+  if not row then
+    return
+  end
+  vim.ui.input({ prompt = "Rename agent: ", default = row.name }, function(input)
+    input = input and vim.trim(input)
+    if input and input ~= "" then
+      require("agent-fleet.actions").rename(row, input)
+      M.refresh()
+      notify("renamed \u{2014} " .. input)
+    end
+  end)
+end
+
+local function handle_stop()
+  local row = M.row_under_cursor()
+  if not row then
+    return
+  end
+  if not row.live then
+    notify("not running \u{2014} " .. row.name)
+    return
+  end
+  require("agent-fleet.actions").close_live(row)
+  M.refresh()
+  notify("stopped \u{2014} " .. row.name)
+end
+
+local function handle_toggle_archived()
+  state.show_archived = not state.show_archived
+  M.refresh()
+end
+
+local function set_keymaps(bufnr)
+  local opts = { buffer = bufnr, nowait = true, silent = true, noremap = true }
+  vim.keymap.set("n", "<CR>", handle_enter, opts)
+  vim.keymap.set("n", "d", handle_done, opts)
+  vim.keymap.set("n", "x", handle_archive, opts)
+  vim.keymap.set("n", "r", handle_rename, opts)
+  vim.keymap.set("n", "s", handle_stop, opts)
+  vim.keymap.set("n", "A", handle_toggle_archived, opts)
+  vim.keymap.set("n", "R", M.refresh, opts)
+  vim.keymap.set("n", "gr", M.refresh, opts)
+end
+
 function M.open()
   if state.bufnr and vim.api.nvim_buf_is_valid(state.bufnr) then
     local win = window_showing(state.bufnr)
@@ -148,6 +239,7 @@ function M.open()
   vim.api.nvim_set_option_value("cursorline", true, { win = win })
 
   M.define_highlights()
+  set_keymaps(bufnr)
   render_into(bufnr)
 end
 
