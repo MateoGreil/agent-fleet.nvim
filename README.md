@@ -51,9 +51,12 @@ Built incrementally, feature by feature. Done so far:
   prompt (board `i`, `:Agent <prompt>`) but **without** a name can be renamed
   automatically: the plugin hands that prompt to a lightweight one-shot `pi`
   namer to summarize it, then renames the agent (still flagged as
-  machine-named, so a later manual `:AgentRename` wins). Agents launched without
-  a prompt keep their numbered default name. Off by default; enable with
-  `auto_name.enabled = true` and set `auto_name.model`.
+  machine-named, so a later manual `:AgentRename` wins). Even with LLM
+  auto-naming off, an agent launched with a prompt takes its default name from
+  the first line of that prompt (char-aware truncated); only an agent launched
+  without a prompt keeps the numbered `<kind>-<n>` default. Off by default;
+  enable the LLM namer with `auto_name.enabled = true` and set
+  `auto_name.model`.
 
 Roadmap:
 
@@ -237,12 +240,16 @@ When a **pi** agent is launched with an initial prompt but without a name (board
 `i`, or `:Agent <prompt>`), the plugin can rename it from that prompt: it runs a
 lightweight one-shot `pi` namer (no tools, no session, no extensions) on the
 prompt text, sanitizes the reply to a short name, and applies it. There is no
-polling — the prompt we launched with is used directly. An agent launched
-without a prompt keeps its numbered default name. The agent stays
+polling — the prompt we launched with is used directly. The agent stays
 machine-named, so a manual `:AgentRename` always takes precedence and is never
 overwritten.
 
-It is **OFF by default** and does nothing unless you both set
+Independently of this LLM namer, an agent launched with a prompt but no name
+already gets a sensible default: the first line of the prompt (char-aware
+truncated to 40 chars), instead of the numbered `<kind>-<n>` name. An agent
+launched without a prompt still falls back to `<kind>-<n>`.
+
+The LLM namer is **OFF by default** and does nothing unless you both set
 `auto_name.enabled = true` **and** provide a `model`.
 
 ```lua

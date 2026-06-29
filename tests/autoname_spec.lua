@@ -263,5 +263,37 @@ check("disabled runner not called", disabled_called == false)
 check("disabled no rename", roster.get(id_dis).name == "pi-d")
 agent.agents[802] = nil
 
+-- default_name pure helper
+check("default_name plain", autoname.default_name("fix the login flow") == "fix the login flow")
+check("default_name nil prompt", autoname.default_name(nil) == nil)
+check("default_name empty prompt", autoname.default_name("   ") == nil)
+check("default_name first line only", autoname.default_name("do a thing\nmore detail here") == "do a thing")
+check("default_name collapses whitespace", autoname.default_name("a    b\tc") == "a b c")
+local dn_long = autoname.default_name(string.rep("x", 80))
+check("default_name truncates with ellipsis", dn_long == string.rep("x", 39) .. "\u{2026}")
+check("default_name truncated length", vim.fn.strchars(dn_long) == 40)
+check(
+  "default_name char-aware truncation keeps utf8 intact",
+  not autoname.default_name(string.rep("é", 80)):find("\xef\xbf\xbd")
+)
+
+-- launch derives the default name from the initial prompt (replaces pi-N)
+local cwd_dn = vim.fn.tempname()
+vim.fn.mkdir(cwd_dn, "p")
+config.setup({
+  agents = {
+    pi = { cmd = "true", session = { id_flag = "--session-id", name_flag = "--name", resume_flag = "--session" } },
+  },
+  start_insert = false,
+})
+local a_dn = agent.launch({ agent = "pi", cwd = cwd_dn, prompt = "add dark mode toggle" })
+check("launch with prompt names from prompt", a_dn ~= nil and a_dn.name == "add dark mode toggle")
+check("launch with prompt stays auto_named", a_dn ~= nil and a_dn.auto_named == true)
+check("launch with prompt roster name", a_dn ~= nil and roster.get(a_dn.session_id).name == "add dark mode toggle")
+local a_noprompt = agent.launch({ agent = "pi", cwd = cwd_dn })
+check("launch without prompt falls back to kind-N", a_noprompt ~= nil and a_noprompt.name:match("^pi%-%d+$") ~= nil)
+local a_named = agent.launch({ agent = "pi", cwd = cwd_dn, name = "explicit", prompt = "ignored prompt" })
+check("explicit name beats prompt", a_named ~= nil and a_named.name == "explicit")
+
 vim.fn.writefile(out, os.getenv("AGENT_FLEET_TEST_OUT"))
 vim.cmd("qa!")

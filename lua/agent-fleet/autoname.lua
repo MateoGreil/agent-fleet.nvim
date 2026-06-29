@@ -2,6 +2,7 @@ local M = {}
 
 M.max_name_words = 5
 M.max_name_chars = 100
+M.max_default_chars = 40
 M._warned_no_model = false
 
 M.system_prompt =
@@ -51,6 +52,28 @@ function M.sanitize(raw, max_words, max_chars)
   first = vim.trim(first)
   if first == "" then
     return nil
+  end
+  return first
+end
+
+function M.default_name(prompt)
+  if type(prompt) ~= "string" then
+    return nil
+  end
+  local first
+  for _, line in ipairs(vim.split(prompt, "\n", { plain = true })) do
+    local trimmed = vim.trim(line)
+    if trimmed ~= "" then
+      first = trimmed
+      break
+    end
+  end
+  if not first then
+    return nil
+  end
+  first = first:gsub("%s+", " ")
+  if vim.fn.strchars(first) > M.max_default_chars then
+    first = vim.fn.strcharpart(first, 0, M.max_default_chars - 1) .. "\u{2026}"
   end
   return first
 end

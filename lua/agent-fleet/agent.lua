@@ -85,7 +85,9 @@ function M.launch(opts)
   M._seq = M._seq + 1
   local id = M._seq
   local auto_named = opts.name == nil
-  local name = opts.name or (kind .. "-" .. id)
+  local name = opts.name
+    or require("agent-fleet.autoname").default_name(opts.prompt)
+    or (kind .. "-" .. id)
 
   local session_id = nil
   local extra = {}
