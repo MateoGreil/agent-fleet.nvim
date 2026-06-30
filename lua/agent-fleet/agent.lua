@@ -18,6 +18,44 @@ function M.build_argv(cmd, extra)
   return argv
 end
 
+--- Pin every window showing bufnr (except the focused one) to its last line,
+--- so unfocused agent terminals keep following output instead of letting it
+--- scroll past the visible region.
+--- @param bufnr integer
+function M.follow_to_bottom(bufnr)
+  if not (bufnr and vim.api.nvim_buf_is_valid(bufnr)) then
+    return
+  end
+  local last = vim.api.nvim_buf_line_count(bufnr)
+  local current = vim.api.nvim_get_current_win()
+  for _, win in ipairs(vim.api.nvim_list_wins()) do
+    if win ~= current and vim.api.nvim_win_get_buf(win) == bufnr then
+      pcall(vim.api.nvim_win_set_cursor, win, { last, 0 })
+    end
+  end
+end
+
+--- Keep unfocused windows of a terminal buffer scrolled to the bottom on output.
+--- @param bufnr integer
+local function attach_follow(bufnr)
+  if not config.get().follow_output then
+    return
+  end
+  local scheduled = false
+  vim.api.nvim_buf_attach(bufnr, false, {
+    on_lines = function()
+      if scheduled then
+        return
+      end
+      scheduled = true
+      vim.schedule(function()
+        scheduled = false
+        M.follow_to_bottom(bufnr)
+      end)
+    end,
+  })
+end
+
 --- Open a terminal for argv, register it, and wire cleanup.
 --- @param argv string[]
 --- @param cwd string
@@ -57,6 +95,8 @@ local function spawn(argv, cwd, meta)
       M.agents[meta.id] = nil
     end,
   })
+
+  attach_follow(bufnr)
 
   if cfg.start_insert then
     vim.cmd("startinsert")

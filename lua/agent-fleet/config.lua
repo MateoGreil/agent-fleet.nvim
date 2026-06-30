@@ -19,6 +19,7 @@ M.defaults = {
   agents = {},
   window = "enew",
   start_insert = true,
+  follow_output = true,
   board = {
     refresh_ms = 2000,
   },

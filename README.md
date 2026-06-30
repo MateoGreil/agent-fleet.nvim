@@ -155,6 +155,7 @@ require("agent-fleet").setup({
   },
   window = "enew",      -- where the agent terminal opens (see below)
   start_insert = true,  -- drop straight into terminal insert mode
+  follow_output = true, -- keep unfocused agent terminals scrolled to the bottom
   board = {             -- the :AgentsBoard buffer
     refresh_ms = 2000,  -- how often the open board re-renders
   },
@@ -171,6 +172,7 @@ require("agent-fleet").setup({
 | `agents`        | (required — none by default) | Registry of declared agents (`key -> { cmd = … }`). You must declare at least one; `pi` and `claude` are recognized keys that auto-fill their presets (`{}` suffices). |
 | `window`        | `"enew"`| Ex command that opens the agent window.           |
 | `start_insert`  | `true`  | Enter terminal insert mode after launching.       |
+| `follow_output` | `true`  | Auto-scroll an agent's terminal to the bottom on new output even when its window is not focused. |
 | `board.refresh_ms` | `2000` | How often (ms) the open `:AgentsBoard` re-renders. |
 
 ### Registering agents
