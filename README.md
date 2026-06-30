@@ -9,9 +9,13 @@ clean board.
     alt="agent-fleet.nvim — launch real pi agents from the board, watch them run in native terminals, then rename, mark done and archive across the fleet">
 </p>
 
-No PTY-attach dashboard, no reimplemented agent UI. The agent runs as its real
-CLI in a real nvim terminal — so the whole conversation lives in a buffer you
-can scroll, search and yank with your own keybindings.
+Inspired by `claude agents`, but with one hard rule:
+
+> **The agent runs as its real CLI, in a native nvim terminal. Nothing
+> reimplements the agent's UI.**
+
+So the whole conversation lives in a buffer you can scroll, search and yank with
+your own keybindings.
 
 ## Features
 
