@@ -1,107 +1,87 @@
 # agent-fleet.nvim
 
 Run a fleet of coding agents from Neovim — [pi](https://pi.dev), Claude Code, or
-any agent CLI — each in its own native terminal, listed and switchable from a
-clean UI.
+any agent CLI — each in its own **native terminal**, listed and switchable from a
+clean board.
 
-Git isolation (worktrees) is left to the agent itself: a well-instructed agent
-already knows whether a task needs a worktree and what to name it, so
-agent-fleet doesn't create them — it just launches agents.
+```
+  running ──────────────────────────────────
+   ● working   fix-auth-redirect          now
+   ● idle      refactor-roster-dedup        5m
+  done ─────────────────────────────────────
+   ✓ stopped   bump-golangci-lint           2h
+  archived ─────────────────────────────────
+```
+
+No PTY-attach dashboard, no reimplemented agent UI. The agent runs as its real
+CLI in a real nvim terminal — so the whole conversation lives in a buffer you
+can scroll, search and yank with your own keybindings.
 
 ## Why
 
-Built between [pi-agent-board](https://github.com/rutvikchandla3/pi-agent-board)
-and orchestrators like autobahn — but with one hard rule:
+Inspired by `claude agents`, but with one hard rule:
 
 > **The agent runs as its real CLI, in a native nvim terminal. Nothing
 > reimplements the agent's UI.**
 
-This matters because agents like `pi` **render inline** (no alternate screen), so
-in a native nvim terminal the whole conversation stays in the buffer. Press
+This matters because agents like `pi` **render inline** (no alternate screen),
+so in a native nvim terminal the whole conversation stays in the buffer. Press
 `<C-\><C-n>` and you scroll, search and yank the entire transcript **with your
 own nvim keybindings** — the thing PTY-attach dashboards take away from you.
 
-## Status
+Git isolation (worktrees) is left to the agent itself: a well-instructed agent
+already knows whether a task needs a worktree and what to name it, so
+agent-fleet doesn't create them — it just launches, tracks and switches agents.
 
-Built incrementally, feature by feature. Done so far:
+## Features
 
-- **[x] Launch** — `:Agent [prompt]` launches the default agent in a terminal in
-  the current window; any arguments become the agent's initial prompt. With no
-  arguments it asks for one via a `New agent prompt:` input (the same as the
-  board's `i` key). Agents are always auto-named.
-- **[x] Persistence & resume** — a roster on disk (`id → {type, name, cwd, …}`);
-  `:Agent` assigns each pi agent a `--session-id <uuid>` + `--name` at launch and
-  records it. `:AgentResume` reopens a past agent of the current directory —
-  focusing its live buffer if still running, else relaunching `pi --session
-  <id>` in its original cwd (never touching the session file).
-- **[x] List & switch** — `:Agents` lists the agents of the **current directory**
-  (live ones in this nvim merged with this cwd's pi sessions on disk, deduped by
-  session id) and switches to the chosen one — focus if live, else resume.
-  `:AgentDone` marks an agent done (✓); `:AgentArchive` toggles archive (hidden
-  by default). Soft archive only — never deletes a session file. `:AgentRename`
-  renames an agent (the current agent's buffer, or a picked one). `:AgentDone` /
-  `:AgentArchive` also act on the current agent's buffer, closing (killing) its
-  terminal when live. Each row shows a derived state
-  (`idle`/`working`/`stopped`/`error`/`new`/`unknown` — `unknown` meaning the
-  state is older than the bounded tail read — tailed from the session `.jsonl`)
-  and a relative last-activity time (`now`/`5m`/`3h`/`2d`/`3w`); the board is
-  sorted by most-recently-active first (within the live / done / archived
-  grouping).
-- **[x] Background auto-naming (opt-in)** — a pi agent launched with an initial
-  prompt (board `i`, `:Agent <prompt>`) but **without** a name can be renamed
-  automatically: the plugin hands that prompt to a lightweight one-shot `pi`
-  namer to summarize it, then renames the agent (still flagged as
-  machine-named, so a later manual `:AgentRename` wins). Even with LLM
-  auto-naming off, an agent launched with a prompt takes its default name from
-  the first line of that prompt (char-aware truncated); only an agent launched
-  without a prompt keeps the numbered `<kind>-<n>` default. Off by default;
-  enable the LLM namer with `auto_name.enabled = true` and set
-  `auto_name.model`.
+- **Launch** agents into a native terminal, with an optional initial prompt.
+- **Persist & resume** — a roster on disk; reopen a past agent (focus it if
+  live, else relaunch `pi --session <id>` in its original cwd).
+- **List & switch** the agents of the current directory, live ones merged with
+  on-disk pi sessions and deduped.
+- **Live board** (`:AgentsBoard`) — a dedicated buffer grouping agents into
+  running / idle / done / archived sections, with colored state and relative
+  last-activity times, refreshing on a timer.
+- **Lifecycle** — mark done, archive (soft, never deletes a session), rename,
+  stop; bulk actions over a visual selection.
+- **Background auto-naming** (opt-in) — name an agent from its launch prompt,
+  optionally via a one-shot LLM namer.
 
-Roadmap:
+See [ROADMAP.md](ROADMAP.md) for what's shipped and what's planned. Today **pi**
+is supported end-to-end; other CLIs launch but aren't yet persisted/resumed.
 
-- **[ ] Scope config** — a `scope = "cwd" | "git-root" | "all"` option (default
-  `"cwd"`) controlling which agents the board lists, plus a `:Agents!` bang to
-  show all directories at once.
-- **[ ] Auto-restore** — optional `VimEnter` behavior to relaunch the agents
-  that were live when you quit. Off by default (manual resume from the board is
-  the better default); a config flag on top of the roster.
-- **[x] Live agent state** — derive `idle` / `working` / `stopped` / `error` /
-  `new` / `unknown` (state older than the bounded tail read) for every agent by
-  tailing its session `.jsonl` (tail-bounded read, no whole-file scan), shown
-  alongside a relative last-activity time, and the board is re-sorted by
-  most-recently-active.
-- **[ ] Per-row preview** — show each agent's last assistant message (or a short
-  snippet of it) inline in the board / a preview pane. Deferred.
-- **[x] UI board** — `:AgentsBoard` opens a dedicated, live board buffer
-  listing this directory's agents in lifecycle sections (running / idle /
-  done / archived) with colored state, names and relative activity times.
-  Per-row keys: `<CR>` switch/open, `d` done, `x` archive, `r` rename, `s`
-  stop (kill the live terminal without filing it done), `a` launch, `i`
-  launch with a typed prompt, `A` toggle archived, `R`/`gr` refresh. It
-  re-renders on a timer while visible and reacts to agents exiting. The
-  `vim.ui.select` pickers (`:Agents`, `:AgentDone`, …) remain unchanged.
-- **[ ] Persistent board buffer (return with `<C-o>`)** — today the board is
-  `bufhidden=wipe`, so pressing `<CR>` to enter an agent destroys it and
-  `<C-o>` can't jump back (you reopen with `:AgentsBoard` / `<leader>ab`).
-  Switch it to `bufhidden=hide` so the board persists and `<C-o>` / `<C-^>`
-  return to it; reuse the hidden buffer on reopen, and pause/resume the
-  refresh timer when the board is hidden/shown (the teardown currently keys
-  off `BufWipeout`).
-- **[ ] Detached background mode (opt-in)** — when enabled, agents run under a
-  PTY detacher (`abduco`/`dtach`) so closing nvim detaches them (they keep
-  working) and reopening re-attaches them into buffers. Off by default to keep
-  the pure-native terminal behavior; full transcript still comes from the
-  session file.
-- **[ ] (later) Worktree-aware** — agent-fleet never *creates* worktrees (that's
-  the agent's job), but could later *discover* them via `git worktree list` to
-  show in the picker and offer cleanup. Low priority.
-- **[ ] Claude Code as a first-class fleet agent** — make `:Agents`,
-  persistence, resume and per-type launch work for Claude (and other agents),
-  not just pi. Today only pi is fully supported end-to-end.
-- **[ ] Claude & other agents resume** — extend persistence/resume beyond pi
-  (`claude --resume`), incl. discovering their sessions. pi-only at first.
-- **[ ] Lifecycle** — stop, land changes.
+## Requirements
+
+- Neovim 0.9+
+- At least one agent CLI on your `PATH` ([pi](https://pi.dev), `claude`, …)
+
+## Installation
+
+With [lazy.nvim](https://github.com/folke/lazy.nvim):
+
+```lua
+{
+  "MateoGreil/agent-fleet.nvim",
+  config = function()
+    require("agent-fleet").setup()
+  end,
+}
+```
+
+With [packer.nvim](https://github.com/wbthomason/packer.nvim):
+
+```lua
+use({
+  "MateoGreil/agent-fleet.nvim",
+  config = function()
+    require("agent-fleet").setup()
+  end,
+})
+```
+
+`setup()` is required (it registers defaults). Pass a table to override any
+option — see [Configuration](#configuration).
 
 ## Usage
 
@@ -168,25 +148,41 @@ require("agent-fleet").setup({
 })
 ```
 
-Add any agent CLI by giving it a key and a command:
+| Option          | Default | Description                                       |
+| --------------- | ------- | ------------------------------------------------- |
+| `default_agent` | `"pi"`  | Agent launched by `:Agent` with no argument.      |
+| `agents`        | pi, claude | Registry of agents (`key -> { cmd }`).         |
+| `window`        | `"enew"`| Ex command that opens the agent window.           |
+| `start_insert`  | `true`  | Enter terminal insert mode after launching.       |
+| `board.refresh_ms` | `2000` | How often (ms) the open `:AgentsBoard` re-renders. |
+
+### Registering agents
+
+> **pi only, for now.** Persistence, resume and board listing are wired for
+> `pi` end-to-end. You can register another CLI and it will *launch* in a
+> terminal, but without pi's session integration it won't be persisted,
+> resumed, or shown on the board once it exits. Full multi-agent support is on
+> the [roadmap](ROADMAP.md).
+
+The `agents` registry maps a key to a command:
 
 ```lua
 agents = {
   pi = { cmd = "pi" },
   claude = { cmd = "claude" },
-  aider = { cmd = "aider" },
-  codex = { cmd = "codex" },
 }
 ```
 
-`default_agent` chooses which of these `:Agent` launches; the `agents` registry
-is kept for future multi-agent support, but the agent type is no longer a
-command argument (all of `:Agent`'s arguments become the new agent's name).
+`default_agent` chooses which of these `:Agent` launches; the agent type is not
+a command argument (all of `:Agent`'s arguments become the new agent's name).
 
 `cmd` is split on spaces into an argv list and executed directly **without a
 shell**, so each token becomes a separate argument — no quoting, pipes, or
 `VAR=val` env prefixes. If you need shell features, point `cmd` at a wrapper
 script.
+
+> Backward compat: a top-level `pi_cmd = "..."` still works and seeds the `pi`
+> agent's command.
 
 ### `window` — where the agent opens
 
@@ -204,35 +200,6 @@ terminal, so any window-opening command works. Common choices:
 
 Power users can pass any Ex command, e.g. `window = "botright 80vnew"` for a
 fixed-width split.
-
-| Option          | Default | Description                                       |
-| --------------- | ------- | ------------------------------------------------- |
-| `default_agent` | `"pi"`  | Agent launched by `:Agent` with no argument.      |
-| `agents`        | pi, claude | Registry of agents (`key -> { cmd }`).         |
-| `window`        | `"enew"`| Ex command that opens the agent window.           |
-| `start_insert`  | `true`  | Enter terminal insert mode after launching.       |
-| `board.refresh_ms` | `2000` | How often (ms) the open `:AgentsBoard` re-renders. |
-
-### Board highlight groups
-
-The board defines these highlight groups, each linked to a standard group by
-default so it follows your colourscheme; override any with
-`vim.api.nvim_set_hl(0, "<group>", { … })`:
-
-| Group | Default link | Used for |
-| ----- | ------------ | -------- |
-| `AgentFleetWorking` | `DiagnosticInfo` | a working agent's state |
-| `AgentFleetIdle` | `Normal` | an idle agent's state |
-| `AgentFleetStopped` | `Comment` | a stopped agent's state |
-| `AgentFleetError` | `DiagnosticError` | an errored agent's state |
-| `AgentFleetNew` | `DiagnosticHint` | a brand-new agent's state |
-| `AgentFleetUnknown` | `NonText` | state older than the tail read |
-| `AgentFleetArchived` | `Comment` | archived rows (dimmed) |
-| `AgentFleetHeader` | `Title` | section headers and the empty-state title |
-| `AgentFleetTime` | `Comment` | the relative last-activity column |
-
-> Backward compat: a top-level `pi_cmd = "..."` still works and seeds the `pi`
-> agent's command.
 
 ### `auto_name` — background auto-naming
 
@@ -273,3 +240,21 @@ auto_name = {
 The namer is the only subprocess agent-fleet spawns itself; it runs via
 `jobstart` with an argv list (no shell), and it never passes `--name` or touches
 the session file.
+
+### Board highlight groups
+
+The board defines these highlight groups, each linked to a standard group by
+default so it follows your colourscheme; override any with
+`vim.api.nvim_set_hl(0, "<group>", { … })`:
+
+| Group | Default link | Used for |
+| ----- | ------------ | -------- |
+| `AgentFleetWorking` | `DiagnosticInfo` | a working agent's state |
+| `AgentFleetIdle` | `Normal` | an idle agent's state |
+| `AgentFleetStopped` | `Comment` | a stopped agent's state |
+| `AgentFleetError` | `DiagnosticError` | an errored agent's state |
+| `AgentFleetNew` | `DiagnosticHint` | a brand-new agent's state |
+| `AgentFleetUnknown` | `NonText` | state older than the tail read |
+| `AgentFleetArchived` | `Comment` | archived rows (dimmed) |
+| `AgentFleetHeader` | `Title` | section headers and the empty-state title |
+| `AgentFleetTime` | `Comment` | the relative last-activity column |
