@@ -1,8 +1,8 @@
-vim.opt.runtimepath:append("/home/mat/agent-fleet.nvim")
+vim.opt.runtimepath:append(vim.fn.getcwd())
 
 local board = require("agent-fleet.board")
 local roster = require("agent-fleet.roster")
-local sessions = require("agent-fleet.sessions")
+local sessions = require("agent-fleet.backends.pi")
 local agent = require("agent-fleet.agent")
 local util = require("agent-fleet.util")
 

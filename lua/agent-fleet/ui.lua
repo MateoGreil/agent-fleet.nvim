@@ -195,7 +195,7 @@ local function handle_enter()
   if not row then
     return
   end
-  require("agent-fleet.agent").resume_session({ id = row.id, cwd = row.cwd, type = "pi" })
+  require("agent-fleet.agent").resume_session({ id = row.id, cwd = row.cwd, type = row.type })
 end
 
 local function mark_rows_done(rows)

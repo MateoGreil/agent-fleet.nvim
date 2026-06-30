@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 set -u
 
-REPO="/home/mat/agent-fleet.nvim"
+REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO" || exit 2
 
-specs=(roster_spec launch_spec name_spec resume_spec sessions_spec board_spec board_render_spec switch_spec lifecycle_spec actions_spec autoname_spec state_spec ui_spec ui_keys_spec)
+specs=(roster_spec launch_spec name_spec resume_spec sessions_spec board_spec board_render_spec switch_spec lifecycle_spec actions_spec autoname_spec state_spec ui_spec ui_keys_spec backends_spec board_type_spec)
 total_pass=0
 total_fail=0
 

@@ -13,7 +13,7 @@ function M.current_row()
   if type(a.session_id) ~= "string" then
     return nil
   end
-  return { id = a.session_id, name = a.name, cwd = a.cwd, live = true, bufnr = a.bufnr }
+  return { id = a.session_id, name = a.name, cwd = a.cwd, type = a.agent, live = true, bufnr = a.bufnr }
 end
 
 function M.close_live(row)

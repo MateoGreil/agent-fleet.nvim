@@ -22,11 +22,23 @@ end
 function M.rows(opts)
   opts = opts or {}
   local cwd = opts.cwd or vim.fn.getcwd()
-  local sessions_dir = opts.sessions_dir or require("agent-fleet.config").get().sessions_dir
+  local cfg = require("agent-fleet.config").get()
+  local sessions_dir = opts.sessions_dir or cfg.sessions_dir
   local include_archived = opts.include_archived or false
 
   local live = live_by_cwd(cwd)
-  local disk = index_by_id(require("agent-fleet.sessions").list(cwd, sessions_dir))
+  local backends = require("agent-fleet.backends")
+  local disk = {}
+  local disk_types = {}
+  for agent_type, _ in pairs(cfg.agents) do
+    local backend = backends.resolve(agent_type)
+    if backend.has_disk then
+      for _, entry in ipairs(backend.list(cwd, sessions_dir)) do
+        disk[entry.id] = entry
+        disk_types[entry.id] = agent_type
+      end
+    end
+  end
   local roster = index_by_id(
     require("agent-fleet.roster").list({ cwd = cwd, include_archived = true })
   )
@@ -62,13 +74,22 @@ function M.rows(opts)
       bufnr = live_entry.bufnr
     end
 
+    local row_type
+    if live_entry then
+      row_type = live_entry.agent
+    elseif roster_entry then
+      row_type = roster_entry.type
+    elseif disk_entry then
+      row_type = disk_types[id]
+    end
+
     local name
     if roster_entry then
       name = roster_entry.name
     elseif live_entry then
       name = live_entry.name
     else
-      name = "pi:" .. id:sub(1, 8)
+      name = (row_type or "pi") .. ":" .. id:sub(1, 8)
     end
 
     local done = roster_entry and roster_entry.done or false
@@ -85,8 +106,9 @@ function M.rows(opts)
       local file = disk_entry and disk_entry.file or nil
       local state = "new"
       local last_activity = created_at
-      if file then
-        local info = require("agent-fleet.sessions").tail_info(file)
+      if file and row_type then
+        local backend = backends.resolve(row_type)
+        local info = backend.tail_info(file)
         if info then
           state = info.state
           last_activity = info.last_activity
@@ -96,6 +118,7 @@ function M.rows(opts)
         id = id,
         name = name,
         cwd = cwd,
+        type = row_type,
         live = is_live,
         bufnr = bufnr,
         done = done,

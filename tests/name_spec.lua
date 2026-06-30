@@ -1,5 +1,5 @@
-vim.opt.runtimepath:append("/home/mat/agent-fleet.nvim")
-vim.cmd("source /home/mat/agent-fleet.nvim/plugin/agent-fleet.lua")
+vim.opt.runtimepath:append(vim.fn.getcwd())
+vim.cmd("source " .. vim.fn.getcwd() .. "/plugin/agent-fleet.lua")
 
 local config = require("agent-fleet.config")
 

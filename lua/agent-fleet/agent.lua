@@ -148,14 +148,18 @@ function M.resume_session(spec)
     return nil
   end
 
-  local matches = vim.fn.glob(cfg.sessions_dir .. "/**/*_" .. spec.id .. ".jsonl", true, true)
-  if #matches == 0 then
-    vim.notify("agent-fleet: session file not found for " .. spec.id, vim.log.levels.WARN)
-    return nil
+  local backends = require("agent-fleet.backends")
+  local backend = backends.resolve(kind)
+  if backend.has_disk then
+    local session_file = backend.session_file(spec.cwd, cfg.sessions_dir, spec.id)
+    if not session_file then
+      vim.notify("agent-fleet: session file not found for " .. spec.id, vim.log.levels.WARN)
+      return nil
+    end
   end
 
   local entry = require("agent-fleet.roster").get(spec.id)
-  local name = entry and entry.name or ("pi:" .. spec.id:sub(1, 8))
+  local name = entry and entry.name or (kind .. ":" .. spec.id:sub(1, 8))
 
   M._seq = M._seq + 1
   local argv = M.build_argv(def.cmd, { def.session.resume_flag, spec.id })

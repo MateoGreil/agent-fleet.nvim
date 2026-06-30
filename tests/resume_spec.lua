@@ -1,4 +1,4 @@
-vim.opt.runtimepath:append("/home/mat/agent-fleet.nvim")
+vim.opt.runtimepath:append(vim.fn.getcwd())
 
 local agent = require("agent-fleet.agent")
 local config = require("agent-fleet.config")

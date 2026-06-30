@@ -58,7 +58,7 @@ vim.api.nvim_create_user_command("Agents", function()
     end,
   }, function(choice)
     if choice then
-      require("agent-fleet.agent").resume_session({ id = choice.id, cwd = choice.cwd, type = "pi" })
+      require("agent-fleet.agent").resume_session({ id = choice.id, cwd = choice.cwd, type = choice.type })
     end
   end)
 end, { desc = "agent-fleet: list & switch agents of the current directory" })

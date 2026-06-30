@@ -1,6 +1,6 @@
-vim.opt.runtimepath:append("/home/mat/agent-fleet.nvim")
+vim.opt.runtimepath:append(vim.fn.getcwd())
 
-local sessions = require("agent-fleet.sessions")
+local sessions = require("agent-fleet.backends.pi")
 
 local out = {}
 local function check(name, cond)

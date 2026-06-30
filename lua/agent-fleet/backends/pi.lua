@@ -1,8 +1,12 @@
 local M = {}
 
+M.has_disk = true
+
 function M.cwd_slug(cwd)
   return "--" .. cwd:gsub("/", "-"):gsub("^%-+", ""):gsub("%-+$", "") .. "--"
 end
+
+M.slug = M.cwd_slug
 
 local function read_first_line(file)
   local fd = io.open(file, "r")
@@ -155,6 +159,15 @@ function M.tail_info(file)
     state = state or (from_start and "new" or "unknown"),
     last_activity = last_activity or mtime_ms(file),
   }
+end
+
+function M.session_file(cwd, sessions_dir, id)
+  local pattern = sessions_dir .. "/**/*_" .. id .. ".jsonl"
+  local matches = vim.fn.glob(pattern, true, true)
+  if type(matches) == "table" and #matches > 0 then
+    return matches[1]
+  end
+  return nil
 end
 
 return M
