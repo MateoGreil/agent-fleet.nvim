@@ -61,6 +61,22 @@ ships and what's planned. For the user-facing docs, see [README.md](README.md).
 
 ## Planned
 
+- **[ ] Pick the agent type at launch (opt-in)** — let the user choose *which*
+  declared agent (`pi`, `claude`, …) `:Agent` and the board's `a` / `i` keys
+  launch, instead of always using `default_agent`. Today the agent type isn't
+  selectable from the commands — all of `:Agent`'s arguments become the new
+  agent's name, and launching a non-default agent requires the
+  `launch({ agent = … })` Lua API. Add a config flag (e.g. `pick_agent =
+  true`, off by default) that inserts a `vim.ui.select` step before launch;
+  when off, behavior is unchanged. The picker must **only** appear when two or
+  more agents are declared — with a single declared agent there's nothing to
+  choose, so the step is skipped entirely (no extra prompt on launch).
+- **[ ] Visually distinguish agent type in `:Agents` / `:AgentsBoard`** — show
+  each row's type (`pi` / `claude` / …) in the picker and the board so a mixed
+  fleet is readable at a glance (a column or a colored badge; the row already
+  carries `type`). Surface it **only when more than one type is present** in
+  the listing — when every agent is the same type there's nothing to
+  disambiguate, so no type marker is shown.
 - **[ ] Scope config** — a `scope = "cwd" | "git-root" | "all"` option (default
   `"cwd"`) controlling which agents the board lists, plus a `:Agents!` bang to
   show all directories at once.
