@@ -4,14 +4,10 @@ Run a fleet of coding agents from Neovim — [pi](https://pi.dev), Claude Code, 
 any agent CLI — each in its own **native terminal**, listed and switchable from a
 clean board.
 
-```
-  running ──────────────────────────────────
-   ● working   fix-auth-redirect          now
-   ● idle      refactor-roster-dedup        5m
-  done ─────────────────────────────────────
-   ✓ stopped   bump-golangci-lint           2h
-  archived ─────────────────────────────────
-```
+<p align="center">
+  <img src="demo/agent-fleet.gif" width="820"
+    alt="agent-fleet.nvim — launch real pi agents from the board, watch them run in native terminals, then rename, mark done and archive across the fleet">
+</p>
 
 No PTY-attach dashboard, no reimplemented agent UI. The agent runs as its real
 CLI in a real nvim terminal — so the whole conversation lives in a buffer you

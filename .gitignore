@@ -1,3 +1,7 @@
 *.swp
 .DS_Store
 .superpowers/
+
+# Demo recording harness — kept locally, not tracked. Only the embedded GIF is.
+/demo/*
+!/demo/agent-fleet.gif
