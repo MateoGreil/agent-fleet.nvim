@@ -68,6 +68,21 @@ ships and what's planned. For the user-facing docs, see [README.md](README.md).
   return to it; reuse the hidden buffer on reopen, and pause/resume the
   refresh timer when the board is hidden/shown (the teardown currently keys
   off `BufWipeout`).
+- **[ ] In-editor control bridge (agent ↔ host nvim)** — let an agent know it
+  runs inside the fleet and drive its host nvim. The back-channel is free:
+  nvim already exports `$NVIM` (its RPC socket) into every terminal job, so a
+  child can reach the parent (verified: a child can open splits, set buffer
+  lines, resize, echo — any `nvim_*` call). Two pieces to add: (1) **identity**
+  — pass `env = { AGENT_FLEET, AGENT_FLEET_ID, AGENT_FLEET_NAME,
+  AGENT_FLEET_BUFNR }` in `spawn()`'s `jobstart` so the agent detects it's in
+  the fleet and knows which agent/buffer it is (`$NVIM` is already inherited);
+  (2) **a curated bridge** — a Lua module + thin CLI wrapper exposing a fixed,
+  safe verb set (`notify`, `open_file`, `show_float`, `switch_buffer`,
+  `resize`, `set_lines`) instead of handing the agent raw `nvim_exec_lua` over
+  the host editor. The bridge maps a connection back to its agent via the
+  `vim.b[bufnr].agent_fleet` metadata already set at launch, and refuses
+  out-of-scope calls. Ship the agent-facing protocol as a doc/skill. Needs a
+  design pass on the verb surface and security model before implementation.
 - **[ ] Detached background mode (opt-in)** — when enabled, agents run under a
   PTY detacher (`abduco`/`dtach`) so closing nvim detaches them (they keep
   working) and reopening re-attaches them into buffers. Off by default to keep
