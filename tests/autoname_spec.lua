@@ -295,5 +295,18 @@ check("launch without prompt falls back to kind-N", a_noprompt ~= nil and a_nopr
 local a_named = agent.launch({ agent = "pi", cwd = cwd_dn, name = "explicit", prompt = "ignored prompt" })
 check("explicit name beats prompt", a_named ~= nil and a_named.name == "explicit")
 
+-- runner must close stdin: a process that reads stdin to EOF would hang
+-- forever if nvim left the stdin pipe open (real pi -p behaviour).
+local runner_out, runner_done = nil, false
+autoname.runner({ "cat" }, vim.fn.getcwd(), 3000, function(raw)
+  runner_out = raw
+  runner_done = true
+end)
+vim.wait(5000, function()
+  return runner_done
+end, 50)
+check("runner does not hang on stdin-reading process", runner_done == true)
+check("runner returns empty output for stdin-reader", runner_out == "")
+
 vim.fn.writefile(out, os.getenv("AGENT_FLEET_TEST_OUT"))
 vim.cmd("qa!")

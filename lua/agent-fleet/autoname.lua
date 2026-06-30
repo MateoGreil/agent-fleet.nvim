@@ -168,6 +168,7 @@ function M.runner(argv, cwd, timeout_ms, cb)
   local timer
   local job = vim.fn.jobstart(argv, {
     cwd = cwd,
+    stdin = "null",
     stdout_buffered = true,
     on_stdout = function(_, data)
       for _, l in ipairs(data or {}) do
