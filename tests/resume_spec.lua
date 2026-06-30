@@ -25,10 +25,10 @@ local cwd_live = vim.fn.tempname()
 vim.fn.mkdir(cwd_live, "p")
 
 config.setup({
-  sessions_dir = sessions_dir,
   agents = {
     pi = {
       cmd = "true",
+      sessions_dir = sessions_dir,
       session = { id_flag = "--session-id", name_flag = "--name", resume_flag = "--session" },
     },
   },

@@ -151,7 +151,7 @@ function M.resume_session(spec)
   local backends = require("agent-fleet.backends")
   local backend = backends.resolve(kind)
   if backend.has_disk then
-    local session_file = backend.session_file(spec.cwd, cfg.sessions_dir, spec.id)
+    local session_file = backend.session_file(spec.cwd, cfg.agents[kind].sessions_dir, spec.id)
     if not session_file then
       vim.notify("agent-fleet: session file not found for " .. spec.id, vim.log.levels.WARN)
       return nil

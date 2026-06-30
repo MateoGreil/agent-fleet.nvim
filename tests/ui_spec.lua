@@ -11,7 +11,7 @@ end
 
 local TMP = vim.fn.tempname()
 vim.fn.mkdir(TMP, "p")
-config.setup({ sessions_dir = TMP })
+config.setup({ agents = { pi = { cmd = "true", sessions_dir = TMP } } })
 
 local function win_opt(win, name)
   return vim.api.nvim_get_option_value(name, { win = win })
@@ -149,7 +149,7 @@ check("wipeout resets show_archived to false", ui._state.show_archived == false)
 -- Case 12: the timer actually ticks a refresh. Uses a short configured
 -- interval and a generous wait budget (250ms for a 50ms timer => ~4 ticks),
 -- so it is not sensitive to scheduler jitter (passing needs only >=1 tick).
-config.setup({ sessions_dir = TMP, board = { refresh_ms = 50 } })
+config.setup({ agents = { pi = { cmd = "true", sessions_dir = TMP } }, board = { refresh_ms = 50 } })
 vim.cmd("enew")
 ui.open()
 local orig_refresh = ui.refresh

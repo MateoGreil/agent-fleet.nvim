@@ -11,7 +11,7 @@ end
 
 local TMP = vim.fn.tempname()
 vim.fn.mkdir(TMP, "p")
-config.setup({ sessions_dir = TMP })
+config.setup({ agents = { pi = { cmd = "true", sessions_dir = TMP } } })
 
 local PROJ = TMP .. "/proj"
 vim.fn.mkdir(PROJ, "p")

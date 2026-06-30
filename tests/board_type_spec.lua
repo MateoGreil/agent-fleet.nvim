@@ -1,7 +1,10 @@
 vim.opt.runtimepath:append(vim.fn.getcwd())
 
+local config = require("agent-fleet.config")
 local board = require("agent-fleet.board")
 local pi_backend = require("agent-fleet.backends.pi")
+
+config.setup({ agents = { pi = { cmd = "true" } } })
 
 local out = {}
 local function check(name, cond)

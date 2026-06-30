@@ -23,17 +23,17 @@ function M.rows(opts)
   opts = opts or {}
   local cwd = opts.cwd or vim.fn.getcwd()
   local cfg = require("agent-fleet.config").get()
-  local sessions_dir = opts.sessions_dir or cfg.sessions_dir
   local include_archived = opts.include_archived or false
 
   local live = live_by_cwd(cwd)
   local backends = require("agent-fleet.backends")
   local disk = {}
   local disk_types = {}
-  for agent_type, _ in pairs(cfg.agents) do
+  for agent_type, def in pairs(cfg.agents) do
     local backend = backends.resolve(agent_type)
     if backend.has_disk then
-      for _, entry in ipairs(backend.list(cwd, sessions_dir)) do
+      local sdir = opts.sessions_dir or def.sessions_dir
+      for _, entry in ipairs(backend.list(cwd, sdir)) do
         disk[entry.id] = entry
         disk_types[entry.id] = agent_type
       end

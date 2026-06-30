@@ -8,7 +8,7 @@ local config = require("agent-fleet.config")
 
 local TMP = vim.fn.tempname()
 vim.fn.mkdir(TMP, "p")
-config.setup({ sessions_dir = TMP })
+config.setup({ agents = { pi = { cmd = "true", sessions_dir = TMP } } })
 
 local out = {}
 local function check(name, cond)

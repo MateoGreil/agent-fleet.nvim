@@ -94,10 +94,10 @@ check("blank prompt is not appended", captured ~= nil and captured[#captured] ==
 vim.fn.jobstart = orig_jobstart
 
 local before = #roster.list({ include_archived = true })
-config.setup({ agents = { claude = { cmd = "true" } }, start_insert = false })
-local c = agent.launch({ agent = "claude", name = "test-claude", cwd = cwd_claude })
-check("claude launch returned agent", c ~= nil)
-check("claude session_id is nil", c ~= nil and c.session_id == nil)
+config.setup({ agents = { plain = { cmd = "true" } }, start_insert = false })
+local c = agent.launch({ agent = "plain", name = "test-plain", cwd = cwd_claude })
+check("plain launch returned agent", c ~= nil)
+check("plain session_id is nil", c ~= nil and c.session_id == nil)
 check("no roster entry written for no-session agent", #roster.list({ include_archived = true }) == before)
 
 vim.fn.writefile(out, os.getenv("AGENT_FLEET_TEST_OUT"))
