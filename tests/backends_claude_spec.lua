@@ -87,6 +87,13 @@ vim.fn.writefile({
 local info_top_error = claude.tail_info(top_error_file)
 check("top-level error -> error", info_top_error ~= nil and info_top_error.state == "error")
 
+local null_fields_file = vim.fn.tempname()
+vim.fn.writefile({
+  '{"type":"assistant","message":{"role":"assistant","stop_reason":"end_turn"},"apiErrorStatus":null,"error":null}',
+}, null_fields_file)
+local info_null_fields = claude.tail_info(null_fields_file)
+check("null error fields -> idle", info_null_fields ~= nil and info_null_fields.state == "idle")
+
 local user_file = vim.fn.tempname()
 vim.fn.writefile({ '{"type":"user","message":{"role":"user","content":"test"}}' }, user_file)
 local info_user = claude.tail_info(user_file)

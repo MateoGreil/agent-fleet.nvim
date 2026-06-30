@@ -61,6 +61,7 @@ With [lazy.nvim](https://github.com/folke/lazy.nvim):
         pi = {},
         claude = {},
       },
+      -- optional: background auto-naming via LLM
       auto_name = {
         enabled = true,
         model = "anthropic/claude-haiku-4-5",
@@ -81,6 +82,7 @@ use({
         pi = {},
         claude = {},
       },
+      -- optional: background auto-naming via LLM
       auto_name = {
         enabled = true,
         model = "anthropic/claude-haiku-4-5",
@@ -167,7 +169,7 @@ require("agent-fleet").setup({
 
 | Option          | Default | Description                                       |
 | --------------- | ------- | ------------------------------------------------- |
-| `default_agent` | `"pi"`  | Agent launched by `:Agent` with no argument.      |
+| `default_agent` | (required when multiple agents declared) | Agent launched by `:Agent` with no argument. Implicit when exactly one agent is declared; required when two or more are declared; with zero agents declared the plugin notifies an error and commands no-op. |
 | `agents`        | pi, claude | Registry of agents (`key -> { cmd }`).         |
 | `window`        | `"enew"`| Ex command that opens the agent window.           |
 | `start_insert`  | `true`  | Enter terminal insert mode after launching.       |

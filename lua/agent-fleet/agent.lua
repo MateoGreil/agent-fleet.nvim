@@ -117,7 +117,7 @@ function M.launch(opts)
 end
 
 --- Resume a session by spec: focus its live buffer if still running, else
---- relaunch its pi session in the given cwd. Works for sessions not in the
+--- relaunch its session in the given cwd. Works for sessions not in the
 --- roster (external/disk-only).
 --- @param spec table { id = string, cwd = string, type = string|nil }
 --- @return table|nil agent

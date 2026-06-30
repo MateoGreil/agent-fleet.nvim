@@ -85,6 +85,10 @@ function M.tail_info(file)
   local content = table.concat(blocks)
   local lines = vim.split(content, "\n", { plain = true })
 
+  local function present(v)
+    return v ~= nil and v ~= vim.NIL
+  end
+
   local state = nil
   for i = #lines, 1, -1 do
     local line = lines[i]
@@ -99,7 +103,7 @@ function M.tail_info(file)
           end
         elseif msg_type == "assistant" then
           if type(decoded.message) == "table" then
-            if decoded.isApiErrorMessage == true or decoded.apiErrorStatus or decoded.error then
+            if decoded.isApiErrorMessage == true or present(decoded.apiErrorStatus) or present(decoded.error) then
               state = "error"
             else
               local stop_reason = decoded.message.stop_reason
