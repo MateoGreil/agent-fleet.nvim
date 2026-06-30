@@ -78,30 +78,57 @@ function M.default_name(prompt)
   return first
 end
 
-function M.build_argv(pi_cmd, prompt, system, model, thinking)
-  local argv = vim.split(pi_cmd, " ", { trimempty = true })
-  local extra = {
-    "-p",
-    prompt,
-    "--system-prompt",
-    system,
-    "--model",
-    model,
-    "--thinking",
-    thinking,
-    "--no-tools",
-    "--no-session",
-    "--no-extensions",
-    "--no-skills",
-    "--no-context-files",
-    "--no-prompt-templates",
-    "--mode",
-    "text",
-  }
-  for _, v in ipairs(extra) do
-    argv[#argv + 1] = v
+local namers = {
+  pi = function(base_cmd, prompt, system, model, thinking)
+    local argv = vim.split(base_cmd, " ", { trimempty = true })
+    local extra = {
+      "-p",
+      prompt,
+      "--system-prompt",
+      system,
+      "--model",
+      model,
+      "--thinking",
+      thinking,
+      "--no-tools",
+      "--no-session",
+      "--no-extensions",
+      "--no-skills",
+      "--no-context-files",
+      "--no-prompt-templates",
+      "--mode",
+      "text",
+    }
+    for _, v in ipairs(extra) do
+      argv[#argv + 1] = v
+    end
+    return argv
+  end,
+  claude = function(base_cmd, prompt, system, model, _thinking)
+    local argv = vim.split(base_cmd, " ", { trimempty = true })
+    local extra = {
+      "-p",
+      prompt,
+      "--system-prompt",
+      system,
+      "--model",
+      model,
+      "--tools",
+      "",
+    }
+    for _, v in ipairs(extra) do
+      argv[#argv + 1] = v
+    end
+    return argv
+  end,
+}
+
+function M.build_argv(backend, base_cmd, prompt, system, model, thinking)
+  local builder = namers[backend]
+  if not builder then
+    return nil
   end
-  return argv
+  return builder(base_cmd, prompt, system, model, thinking)
 end
 
 function M.eligible(agent, cfg)
@@ -114,10 +141,15 @@ function M.eligible(agent, cfg)
   if type(agent.session_id) ~= "string" then
     return false
   end
-  if agent.agent ~= "pi" then
+  if type(cfg.auto_name.model) ~= "string" or cfg.auto_name.model == "" then
     return false
   end
-  if type(cfg.auto_name.model) ~= "string" or cfg.auto_name.model == "" then
+  local agent_cfg = cfg.agents and cfg.agents[agent.agent]
+  if not agent_cfg then
+    return false
+  end
+  local backend = agent_cfg.backend
+  if not backend or not namers[backend] then
     return false
   end
   return true
@@ -202,12 +234,15 @@ function M.name_from_prompt(agent, prompt)
   local cfg = require("agent-fleet.config").get()
 
   if not M.eligible(agent, cfg) then
+    local agent_cfg = cfg.agents and cfg.agents[agent.agent]
+    local backend = agent_cfg and agent_cfg.backend
     if
       cfg.auto_name
       and cfg.auto_name.enabled
       and agent.auto_named
       and agent.session_id
-      and agent.agent == "pi"
+      and backend
+      and namers[backend]
       and (type(cfg.auto_name.model) ~= "string" or cfg.auto_name.model == "")
       and not M._warned_no_model
     then
@@ -229,8 +264,10 @@ function M.name_from_prompt(agent, prompt)
     prompt = string.sub(prompt, 1, max_chars)
   end
 
-  local pi_cmd = cfg.agents[agent.agent].cmd
-  local argv = M.build_argv(pi_cmd, prompt, M.system_prompt, cfg.auto_name.model, cfg.auto_name.thinking)
+  local agent_cfg = cfg.agents[agent.agent]
+  local backend = agent_cfg.backend
+  local base_cmd = agent_cfg.cmd
+  local argv = M.build_argv(backend, base_cmd, prompt, M.system_prompt, cfg.auto_name.model, cfg.auto_name.thinking)
   M.runner(argv, agent.cwd, cfg.auto_name.namer_timeout_ms, function(raw)
     if raw then
       M.apply_name(agent.session_id, raw)

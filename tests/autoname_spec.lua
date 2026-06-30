@@ -116,42 +116,62 @@ local function flag_followed_by(list, flag, value)
   return i ~= nil and list[i + 1] == value
 end
 
-local argv = autoname.build_argv("pi", "PROMPT", "SYS", "MODEL", "off")
-check("build_argv first element pi", argv[1] == "pi")
-check("build_argv -p PROMPT", flag_followed_by(argv, "-p", "PROMPT"))
-check("build_argv --system-prompt SYS", flag_followed_by(argv, "--system-prompt", "SYS"))
-check("build_argv --model MODEL", flag_followed_by(argv, "--model", "MODEL"))
-check("build_argv --thinking off", flag_followed_by(argv, "--thinking", "off"))
-check("build_argv has --no-tools", idx_of(argv, "--no-tools") ~= nil)
-check("build_argv has --no-session", idx_of(argv, "--no-session") ~= nil)
-check("build_argv has --no-context-files", idx_of(argv, "--no-context-files") ~= nil)
-check("build_argv --mode text", flag_followed_by(argv, "--mode", "text"))
+local argv_pi = autoname.build_argv("pi", "pi", "PROMPT", "SYS", "MODEL", "off")
+check("build_argv pi first element", argv_pi[1] == "pi")
+check("build_argv pi -p PROMPT", flag_followed_by(argv_pi, "-p", "PROMPT"))
+check("build_argv pi --system-prompt SYS", flag_followed_by(argv_pi, "--system-prompt", "SYS"))
+check("build_argv pi --model MODEL", flag_followed_by(argv_pi, "--model", "MODEL"))
+check("build_argv pi --thinking off", flag_followed_by(argv_pi, "--thinking", "off"))
+check("build_argv pi has --no-tools", idx_of(argv_pi, "--no-tools") ~= nil)
+check("build_argv pi has --no-session", idx_of(argv_pi, "--no-session") ~= nil)
+check("build_argv pi has --no-context-files", idx_of(argv_pi, "--no-context-files") ~= nil)
+check("build_argv pi --mode text", flag_followed_by(argv_pi, "--mode", "text"))
 
-local argv2 = autoname.build_argv("pi --foo", "P", "S", "M", "off")
-check("build_argv split base cmd 1", argv2[1] == "pi")
-check("build_argv split base cmd 2", argv2[2] == "--foo")
+local argv_pi2 = autoname.build_argv("pi", "pi --foo", "P", "S", "M", "off")
+check("build_argv pi split cmd 1", argv_pi2[1] == "pi")
+check("build_argv pi split cmd 2", argv_pi2[2] == "--foo")
+
+local argv_claude = autoname.build_argv("claude", "claude", "PROMPT2", "SYS2", "MODEL2", "off")
+check("build_argv claude first element", argv_claude[1] == "claude")
+check("build_argv claude -p PROMPT2", flag_followed_by(argv_claude, "-p", "PROMPT2"))
+check("build_argv claude --system-prompt SYS2", flag_followed_by(argv_claude, "--system-prompt", "SYS2"))
+check("build_argv claude --model MODEL2", flag_followed_by(argv_claude, "--model", "MODEL2"))
+check("build_argv claude has --tools", flag_followed_by(argv_claude, "--tools", ""))
+check("build_argv claude no --no-session", idx_of(argv_claude, "--no-session") == nil)
+check("build_argv claude no --no-tools", idx_of(argv_claude, "--no-tools") == nil)
+check("build_argv claude no --mode", idx_of(argv_claude, "--mode") == nil)
+check("build_argv claude no --thinking", idx_of(argv_claude, "--thinking") == nil)
+check("build_argv claude no --no-context-files", idx_of(argv_claude, "--no-context-files") == nil)
 
 -- autoname.eligible matrix
+config.setup({
+  agents = {
+    pi = { backend = "pi", cmd = "pi" },
+    claude = { backend = "claude", cmd = "claude" },
+    generic = { backend = "generic", cmd = "some-agent" },
+  },
+  default_agent = "pi",
+})
+local elig_cfg_test = { auto_name = { enabled = true, model = "fake/model" }, agents = config.get().agents }
 local elig_agent = { auto_named = true, session_id = "elig-sid", agent = "pi" }
-local elig_cfg = { auto_name = { enabled = true, model = "fake/model" } }
-check("eligible all true", autoname.eligible(elig_agent, elig_cfg) == true)
+check("eligible pi all true", autoname.eligible(elig_agent, elig_cfg_test) == true)
 check(
   "eligible disabled",
-  autoname.eligible(elig_agent, { auto_name = { enabled = false, model = "fake/model" } }) == false
+  autoname.eligible(elig_agent, vim.tbl_deep_extend("force", elig_cfg_test, { auto_name = { enabled = false } })) == false
 )
 check(
   "eligible auto_named false",
-  autoname.eligible({ auto_named = false, session_id = "elig-sid", agent = "pi" }, elig_cfg) == false
+  autoname.eligible({ auto_named = false, session_id = "elig-sid", agent = "pi" }, elig_cfg_test) == false
 )
-check(
-  "eligible non-pi agent",
-  autoname.eligible({ auto_named = true, session_id = "elig-sid", agent = "claude" }, elig_cfg) == false
-)
+local elig_claude = { auto_named = true, session_id = "elig-sid2", agent = "claude" }
+check("eligible claude all true", autoname.eligible(elig_claude, elig_cfg_test) == true)
 check(
   "eligible nil session_id",
-  autoname.eligible({ auto_named = true, session_id = nil, agent = "pi" }, elig_cfg) == false
+  autoname.eligible({ auto_named = true, session_id = nil, agent = "pi" }, elig_cfg_test) == false
 )
-check("eligible nil model", autoname.eligible(elig_agent, { auto_name = { enabled = true } }) == false)
+check("eligible nil model", autoname.eligible(elig_agent, { auto_name = { enabled = true }, agents = config.get().agents }) == false)
+local elig_generic = { auto_named = true, session_id = "elig-sid3", agent = "generic" }
+check("eligible generic backend false", autoname.eligible(elig_generic, elig_cfg_test) == false)
 
 -- autoname.apply_name happy path
 local id_ap = "apply-happy-00000001"
