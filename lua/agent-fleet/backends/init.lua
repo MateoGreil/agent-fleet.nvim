@@ -2,6 +2,7 @@ local M = {}
 
 local registry = {
   pi = require("agent-fleet.backends.pi"),
+  claude = require("agent-fleet.backends.claude"),
   generic = require("agent-fleet.backends.generic"),
 }
 

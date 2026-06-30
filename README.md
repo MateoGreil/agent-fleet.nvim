@@ -33,7 +33,8 @@ can scroll, search and yank with your own keybindings.
   optionally via a one-shot LLM namer.
 
 See [ROADMAP.md](ROADMAP.md) for what's shipped and what's planned. Today **pi**
-is supported end-to-end; other CLIs launch but aren't yet persisted/resumed.
+and **Claude Code** are supported end-to-end; other CLIs launch but aren't yet
+persisted/resumed.
 
 ## Requirements
 
@@ -56,6 +57,10 @@ With [lazy.nvim](https://github.com/folke/lazy.nvim):
   },
   config = function()
     require("agent-fleet").setup({
+      agents = {
+        pi = {},
+        claude = {},
+      },
       auto_name = {
         enabled = true,
         model = "anthropic/claude-haiku-4-5",
@@ -72,6 +77,10 @@ use({
   "MateoGreil/agent-fleet.nvim",
   config = function()
     require("agent-fleet").setup({
+      agents = {
+        pi = {},
+        claude = {},
+      },
       auto_name = {
         enabled = true,
         model = "anthropic/claude-haiku-4-5",
@@ -141,8 +150,8 @@ intentionally no `q` binding — leave the board with your usual buffer navigati
 require("agent-fleet").setup({
   default_agent = "pi", -- which agent `:Agent` launches with no argument
   agents = {            -- registry of agents: key -> { cmd = "<command>" }
-    pi = { cmd = "pi" },
-    claude = { cmd = "claude" },
+    pi = {},
+    claude = {},
   },
   window = "enew",      -- where the agent terminal opens (see below)
   start_insert = true,  -- drop straight into terminal insert mode
@@ -166,13 +175,10 @@ require("agent-fleet").setup({
 
 ### Registering agents
 
-> **pi only, for now.** Persistence, resume and board listing are wired for
-> `pi` end-to-end. You can register another CLI and it will *launch* in a
-> terminal, but without pi's session integration it won't be persisted,
-> resumed, or shown on the board once it exits. Full multi-agent support is on
-> the [roadmap](ROADMAP.md).
-
-The `agents` registry maps a key to a command:
+The `agents` registry maps a key to a command. **pi** and **Claude Code** are
+fully supported end-to-end (persist, resume, board listing with live state).
+Other CLIs will launch in a terminal but not appear on the board or be
+resumable unless they provide a session backend.
 
 ```lua
 agents = {

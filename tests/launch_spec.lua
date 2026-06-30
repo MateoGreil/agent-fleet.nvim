@@ -93,6 +93,31 @@ check("blank prompt is not appended", captured ~= nil and captured[#captured] ==
 
 vim.fn.jobstart = orig_jobstart
 
+config.setup({
+  agents = {
+    claude = {
+      cmd = "true",
+      session = { id_flag = "--session-id", name_flag = "--name", resume_flag = "--resume" },
+    },
+  },
+  start_insert = false,
+})
+
+local b = agent.launch({ agent = "claude", name = "test-claude", cwd = cwd_claude })
+check("claude launch returned agent", b ~= nil)
+check("claude session_id is valid uuid", b ~= nil and type(b.session_id) == "string" and b.session_id:match(uuid_pat) ~= nil)
+
+local claude_entries = roster.list({ include_archived = true })
+local found_claude = false
+for _, entry in ipairs(claude_entries) do
+  if entry.id == b.session_id then
+    check("claude roster type == claude", entry.type == "claude")
+    found_claude = true
+    break
+  end
+end
+check("found claude roster entry", found_claude)
+
 local before = #roster.list({ include_archived = true })
 config.setup({ agents = { plain = { cmd = "true" } }, start_insert = false })
 local c = agent.launch({ agent = "plain", name = "test-plain", cwd = cwd_claude })

@@ -50,6 +50,14 @@ ships and what's planned. For the user-facing docs, see [README.md](README.md).
   without a prompt keeps the numbered `<kind>-<n>` default. Off by default;
   enable the LLM namer with `auto_name.enabled = true` and set
   `auto_name.model`.
+- **[x] Claude Code as a first-class fleet agent** — `:Agents`, `:AgentsBoard`,
+  persistence, resume, per-type launch and live state all work for Claude Code.
+  Delivered with a full-parity backend (`backends/claude.lua`) that discovers
+  Claude's on-disk sessions (`~/.claude/projects/<slug>/<uuid>.jsonl`), derives
+  live state (`idle`/`working`/`error`/`unknown`) via bounded backward tail
+  reads, and integrates with resume. Also includes a `generic` backend tier for
+  CLIs that don't provide session files — they launch but don't appear on the
+  board after exit.
 
 ## Planned
 
@@ -91,9 +99,4 @@ ships and what's planned. For the user-facing docs, see [README.md](README.md).
 - **[ ] (later) Worktree-aware** — agent-fleet never *creates* worktrees (that's
   the agent's job), but could later *discover* them via `git worktree list` to
   show in the picker and offer cleanup. Low priority.
-- **[ ] Claude Code as a first-class fleet agent** — make `:Agents`,
-  persistence, resume and per-type launch work for Claude (and other agents),
-  not just pi. Today only pi is fully supported end-to-end.
-- **[ ] Claude & other agents resume** — extend persistence/resume beyond pi
-  (`claude --resume`), incl. discovering their sessions. pi-only at first.
 - **[ ] Lifecycle** — stop, land changes.
