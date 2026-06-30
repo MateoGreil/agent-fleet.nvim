@@ -21,9 +21,9 @@ can scroll, search and yank with your own keybindings.
 
 - **Launch** agents into a native terminal, with an optional initial prompt.
 - **Persist & resume** — a roster on disk; reopen a past agent (focus it if
-  live, else relaunch `pi --session <id>` in its original cwd).
+  live, else relaunch it via its CLI's resume flag in its original cwd).
 - **List & switch** the agents of the current directory, live ones merged with
-  on-disk pi sessions and deduped.
+  on-disk sessions (pi and Claude) and deduped.
 - **Live board** (`:AgentsBoard`) — a dedicated buffer grouping agents into
   running / idle / done / archived sections, with colored state and relative
   last-activity times, refreshing on a timer.
@@ -99,8 +99,10 @@ use({
 })
 ```
 
-`setup()` is required (it registers defaults). Pass a table to override any
-option — see [Configuration](#configuration).
+`setup()` is required, and **you must declare at least one agent** — there are
+no default agents. `pi` and `claude` are recognized keys that auto-fill their
+command and session settings, so `pi = {}` / `claude = {}` is enough; pass extra
+fields to override. See [Configuration](#configuration).
 
 ## Usage
 
@@ -130,7 +132,7 @@ keys (`j`/`k`/`/`/`gg`); the per-row actions are:
 
 | Key | Action |
 | --- | ------ |
-| `<CR>` | switch to the agent under the cursor (focus its terminal if live, else resume `pi --session`) |
+| `<CR>` | switch to the agent under the cursor (focus its terminal if live, else resume it via its CLI) |
 | `d` | mark done (✓) |
 | `x` | archive / unarchive |
 | `r` | rename (prompt) |
@@ -170,7 +172,7 @@ require("agent-fleet").setup({
 | Option          | Default | Description                                       |
 | --------------- | ------- | ------------------------------------------------- |
 | `default_agent` | (required when multiple agents declared) | Agent launched by `:Agent` with no argument. Implicit when exactly one agent is declared; required when two or more are declared; with zero agents declared the plugin notifies an error and commands no-op. |
-| `agents`        | pi, claude | Registry of agents (`key -> { cmd }`).         |
+| `agents`        | (required — none by default) | Registry of declared agents (`key -> { cmd = … }`). You must declare at least one; `pi` and `claude` are recognized keys that auto-fill their presets (`{}` suffices). |
 | `window`        | `"enew"`| Ex command that opens the agent window.           |
 | `start_insert`  | `true`  | Enter terminal insert mode after launching.       |
 | `board.refresh_ms` | `2000` | How often (ms) the open `:AgentsBoard` re-renders. |
@@ -197,8 +199,11 @@ shell**, so each token becomes a separate argument — no quoting, pipes, or
 `VAR=val` env prefixes. If you need shell features, point `cmd` at a wrapper
 script.
 
-> Backward compat: a top-level `pi_cmd = "..."` still works and seeds the `pi`
-> agent's command.
+Declaring `pi = {}` or `claude = {}` pulls in that agent's built-in preset
+(command, session flags, and on-disk session location); any field you set
+overrides the preset. A key with no matching preset (e.g. `aider = { cmd =
+"aider" }`) launches and is tracked while live, but is only persisted/resumed if
+you also give it a `session = { id_flag, name_flag, resume_flag }` block.
 
 ### `window` — where the agent opens
 
@@ -219,10 +224,11 @@ fixed-width split.
 
 ### `auto_name` — background auto-naming
 
-When a **pi** agent is launched with an initial prompt but without a name (board
-`i`, or `:Agent <prompt>`), the plugin can rename it from that prompt: it runs a
-lightweight one-shot `pi` namer (no tools, no session, no extensions) on the
-prompt text, sanitizes the reply to a short name, and applies it. There is no
+When an agent (pi **or** Claude) is launched with an initial prompt but without
+a name (board `i`, or `:Agent <prompt>`), the plugin can rename it from that
+prompt: it runs a lightweight one-shot namer for that agent's backend (pi with
+tools/session/extensions off, or `claude -p` with `--tools ""`) on the prompt
+text, sanitizes the reply to a short name, and applies it. There is no
 polling — the prompt we launched with is used directly. The agent stays
 machine-named, so a manual `:AgentRename` always takes precedence and is never
 overwritten.
