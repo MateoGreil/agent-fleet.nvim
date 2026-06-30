@@ -17,22 +17,6 @@ No PTY-attach dashboard, no reimplemented agent UI. The agent runs as its real
 CLI in a real nvim terminal — so the whole conversation lives in a buffer you
 can scroll, search and yank with your own keybindings.
 
-## Why
-
-Inspired by `claude agents`, but with one hard rule:
-
-> **The agent runs as its real CLI, in a native nvim terminal. Nothing
-> reimplements the agent's UI.**
-
-This matters because agents like `pi` **render inline** (no alternate screen),
-so in a native nvim terminal the whole conversation stays in the buffer. Press
-`<C-\><C-n>` and you scroll, search and yank the entire transcript **with your
-own nvim keybindings** — the thing PTY-attach dashboards take away from you.
-
-Git isolation (worktrees) is left to the agent itself: a well-instructed agent
-already knows whether a task needs a worktree and what to name it, so
-agent-fleet doesn't create them — it just launches, tracks and switches agents.
-
 ## Features
 
 - **Launch** agents into a native terminal, with an optional initial prompt.
