@@ -47,8 +47,20 @@ With [lazy.nvim](https://github.com/folke/lazy.nvim):
 ```lua
 {
   "MateoGreil/agent-fleet.nvim",
+  keys = {
+    { "<leader>aa", "<cmd>Agent<cr>", desc = "Agent Fleet: launch agent" },
+    { "<leader>al", "<cmd>Agents<cr>", desc = "Agent Fleet: list & switch" },
+    { "<leader>ab", "<cmd>AgentsBoard<cr>", desc = "Agent Fleet: board" },
+    { "<leader>ad", "<cmd>AgentDone<cr>", desc = "Agent Fleet: done" },
+    { "<leader>ax", "<cmd>AgentArchive<cr>", desc = "Agent Fleet: archive" },
+  },
   config = function()
-    require("agent-fleet").setup()
+    require("agent-fleet").setup({
+      auto_name = {
+        enabled = true,
+        model = "anthropic/claude-haiku-4-5",
+      },
+    })
   end,
 }
 ```
@@ -59,7 +71,19 @@ With [packer.nvim](https://github.com/wbthomason/packer.nvim):
 use({
   "MateoGreil/agent-fleet.nvim",
   config = function()
-    require("agent-fleet").setup()
+    require("agent-fleet").setup({
+      auto_name = {
+        enabled = true,
+        model = "anthropic/claude-haiku-4-5",
+      },
+    })
+
+    local map = vim.keymap.set
+    map("n", "<leader>aa", "<cmd>Agent<cr>", { desc = "Agent Fleet: launch agent" })
+    map("n", "<leader>al", "<cmd>Agents<cr>", { desc = "Agent Fleet: list & switch" })
+    map("n", "<leader>ab", "<cmd>AgentsBoard<cr>", { desc = "Agent Fleet: board" })
+    map("n", "<leader>ad", "<cmd>AgentDone<cr>", { desc = "Agent Fleet: done" })
+    map("n", "<leader>ax", "<cmd>AgentArchive<cr>", { desc = "Agent Fleet: archive" })
   end,
 })
 ```
