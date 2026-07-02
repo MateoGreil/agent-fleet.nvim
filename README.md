@@ -54,7 +54,8 @@ With [lazy.nvim](https://github.com/folke/lazy.nvim):
     { "<leader>ab", "<cmd>AgentsBoard<cr>", desc = "Agent Fleet: board" },
     { "<leader>ad", "<cmd>AgentDone<cr>", desc = "Agent Fleet: done" },
     { "<leader>ax", "<cmd>AgentArchive<cr>", desc = "Agent Fleet: archive" },
-    { "<leader>as", "<cmd>AgentSend<cr>", mode = { "n", "x" }, desc = "Agent Fleet: send selection to agent" },
+    { "<leader>as", "<cmd>AgentSend<cr>", desc = "Agent Fleet: send selection to agent" },
+    { "<leader>as", ":AgentSend<cr>", mode = "x", desc = "Agent Fleet: send selection to agent" },
   },
   config = function()
     require("agent-fleet").setup({
@@ -96,7 +97,8 @@ use({
     map("n", "<leader>ab", "<cmd>AgentsBoard<cr>", { desc = "Agent Fleet: board" })
     map("n", "<leader>ad", "<cmd>AgentDone<cr>", { desc = "Agent Fleet: done" })
     map("n", "<leader>ax", "<cmd>AgentArchive<cr>", { desc = "Agent Fleet: archive" })
-    map({ "n", "x" }, "<leader>as", "<cmd>AgentSend<cr>", { desc = "Agent Fleet: send selection to agent" })
+    map("n", "<leader>as", "<cmd>AgentSend<cr>", { desc = "Agent Fleet: send selection to agent" })
+    map("x", "<leader>as", ":AgentSend<cr>", { desc = "Agent Fleet: send selection to agent" })
   end,
 })
 ```
@@ -127,6 +129,11 @@ last-focused agent's terminal input, without moving focus or pressing Enter
 for you. That means you can fire it from a few different spots to stack up
 several references in the agent's input, then switch over yourself, add your
 question, and press Enter.
+
+The visual-mode mapping must be `:AgentSend<cr>` (not `<cmd>AgentSend<cr>`): a
+`<Cmd>` mapping does not pass the visual selection's line range to the command,
+so it would only send the cursor line. The leading `:` lets Neovim insert the
+`'<,'>` range for the selection.
 
 Inside an agent terminal: `<C-\><C-n>` to enter Normal mode, then move / scroll /
 yank with your usual nvim keys. `i` / `a` to type to the agent again.
