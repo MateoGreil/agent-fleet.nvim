@@ -5,6 +5,7 @@ local M = {}
 -- id -> { id, name, agent, cmd, bufnr, job, cwd, session_id, auto_named }
 M.agents = {}
 M._seq = 0
+M.last_focused_id = nil
 
 --- Build an argv list from a command string and an extra-args list.
 --- @param cmd string
@@ -88,11 +89,21 @@ local function spawn(argv, cwd, meta)
   vim.b[bufnr].agent_fleet = { id = meta.id, name = meta.name, agent = meta.kind }
   pcall(vim.api.nvim_buf_set_name, bufnr, "agent:" .. meta.name)
 
+  vim.api.nvim_create_autocmd("BufEnter", {
+    buffer = bufnr,
+    callback = function()
+      M.last_focused_id = meta.id
+    end,
+  })
+
   vim.api.nvim_create_autocmd({ "BufWipeout", "TermClose" }, {
     buffer = bufnr,
     once = true,
     callback = function()
       M.agents[meta.id] = nil
+      if M.last_focused_id == meta.id then
+        M.last_focused_id = nil
+      end
     end,
   })
 
