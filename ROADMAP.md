@@ -119,6 +119,14 @@ ships and what's planned. For the user-facing docs, see [README.md](README.md).
   `vim.b[bufnr].agent_fleet` metadata already set at launch, and refuses
   out-of-scope calls. Ship the agent-facing protocol as a doc/skill. Needs a
   design pass on the verb surface and security model before implementation.
+- **[ ] Agent-side nvim RPC helper** — complement the in-editor control bridge
+  above with the mirror direction made easy from the *agent's* side: since
+  `$NVIM` is already inherited by every spawned terminal job, ship a small
+  helper (Lua snippet / CLI one-liner) the agent can call to talk back to its
+  host nvim over that RPC socket (`nvim --server $NVIM --remote-expr` /
+  `--remote-send`, or the curated bridge verbs once built) without hand-rolling
+  the msgpack-rpc call itself each time. Document the socket + verb set as part
+  of the same agent-facing skill/doc as the control bridge.
 - **[ ] Review an agent's changes and hand the review back (proposal)** — review
   the code an agent produced, right from the fleet, then feed that review back to
   the same agent in one step. Idea: shell out to a code-review TUI —
