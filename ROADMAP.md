@@ -58,6 +58,18 @@ ships and what's planned. For the user-facing docs, see [README.md](README.md).
   reads, and integrates with resume. Also includes a `generic` backend tier for
   CLIs that don't provide session files — they launch but don't appear on the
   board after exit.
+- **[x] Send visual/line selection to an agent** — `:AgentSend` is range-aware:
+  in normal mode it takes the current line, in visual mode (`:'<,'>AgentSend`)
+  it takes the selected range. It builds a `path:line` (or `path:line1-line2`)
+  reference — relative to the target agent's cwd when the file lives inside
+  it, else absolute — and sends **only that reference, never the file
+  content**, into the target agent's terminal input with a single trailing
+  space and no newline (it never auto-submits). It never moves focus, so you
+  can fire `:AgentSend` several times from different spots to stack up
+  references and then switch to the agent yourself to type a question.
+  Target resolution: the last-focused live agent → the single live agent when
+  exactly one is running → `vim.ui.select` to pick when two or more are live
+  → else it notifies and refuses when no agent is running.
 
 ## Planned
 
@@ -129,3 +141,9 @@ ships and what's planned. For the user-facing docs, see [README.md](README.md).
   the agent's job), but could later *discover* them via `git worktree list` to
   show in the picker and offer cleanup. Low priority.
 - **[ ] Lifecycle** — stop, land changes.
+- **[ ] :AgentAsk — throwaway agent for a one-off question** — spin up a
+  disposable agent seeded with the current selection (as a reference or its
+  raw content) plus a typed question, to get an answer about that one specific
+  thing — a separate flow from `:AgentSend`'s "stack references into a running
+  agent" model. Once `:AgentAsk` exists, `:AgentSend` can fall back to
+  launching one via `:AgentAsk` when no agent is running, instead of refusing.
