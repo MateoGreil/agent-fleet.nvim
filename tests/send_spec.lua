@@ -117,5 +117,66 @@ do
   agent._seq = saved_seq
 end
 
+do
+  local saved_agents = agent.agents
+  local saved_last_focused_id = agent.last_focused_id
+  local orig_chansend = vim.fn.chansend
+  local captured
+
+  vim.fn.chansend = function(job, data)
+    captured = { job = job, data = data }
+    return 1
+  end
+
+  local cwd = vim.fn.tempname()
+  vim.fn.mkdir(cwd, "p")
+  local file = cwd .. "/main.lua"
+  vim.fn.writefile({ "a", "b", "c", "d", "e" }, file)
+
+  local orig_buf = vim.api.nvim_get_current_buf()
+  vim.cmd("edit " .. vim.fn.fnameescape(file))
+  local agent_buf = vim.api.nvim_create_buf(false, true)
+  local sink = { id = 10, name = "sink", bufnr = agent_buf, job = 555, cwd = cwd }
+
+  agent.agents = { [10] = sink }
+  agent.last_focused_id = 10
+
+  captured = nil
+  send.from_range(2, 4)
+  check("happy path: chansend called once", captured ~= nil)
+  check("happy path: job matches agent job", captured ~= nil and captured.job == 555)
+  check(
+    "happy path: data is relpath:2-4 with trailing space, no newline",
+    captured ~= nil and captured.data == "main.lua:2-4 "
+  )
+
+  captured = nil
+  send.from_range(3, 3)
+  check(
+    "single line: data ends with :3 (no hyphen), trailing space",
+    captured ~= nil and captured.data == "main.lua:3 "
+  )
+
+  local scratch = vim.api.nvim_create_buf(false, true)
+  vim.api.nvim_set_current_buf(scratch)
+  captured = nil
+  send.from_range(1, 1)
+  check("no-file buffer: chansend not called", captured == nil)
+
+  vim.cmd("edit " .. vim.fn.fnameescape(file))
+  agent.agents = {}
+  agent.last_focused_id = nil
+  captured = nil
+  send.from_range(1, 1)
+  check("no live agent: chansend not called", captured == nil)
+
+  vim.fn.chansend = orig_chansend
+  agent.agents = saved_agents
+  agent.last_focused_id = saved_last_focused_id
+  if vim.api.nvim_buf_is_valid(orig_buf) then
+    vim.api.nvim_set_current_buf(orig_buf)
+  end
+end
+
 vim.fn.writefile(out, os.getenv("AGENT_FLEET_TEST_OUT"))
 vim.cmd("qa!")

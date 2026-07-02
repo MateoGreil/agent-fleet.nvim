@@ -20,6 +20,13 @@ end, {
   desc = "agent-fleet: launch the default coding agent, prompting for an initial message (like the board's i key)",
 })
 
+vim.api.nvim_create_user_command("AgentSend", function(opts)
+  require("agent-fleet.send").from_range(opts.line1, opts.line2)
+end, {
+  range = true,
+  desc = "agent-fleet: send the current line / visual selection to an agent as a file:line reference",
+})
+
 vim.api.nvim_create_user_command("AgentsBoard", function()
   require("agent-fleet.ui").open()
 end, { desc = "agent-fleet: open the board" })
