@@ -178,5 +178,78 @@ do
   end
 end
 
+do
+  local saved_agents = agent.agents
+  local saved_last_focused_id = agent.last_focused_id
+  local orig_chansend = vim.fn.chansend
+  local orig_select = vim.ui.select
+  local captured
+
+  vim.fn.chansend = function(job, data)
+    captured = { job = job, data = data }
+    return 1
+  end
+
+  local cwd = vim.fn.tempname()
+  vim.fn.mkdir(cwd, "p")
+  local file = cwd .. "/pick.lua"
+  vim.fn.writefile({ "a", "b", "c" }, file)
+
+  local orig_buf = vim.api.nvim_get_current_buf()
+
+  local buf1b = vim.api.nvim_create_buf(false, true)
+  local buf2b = vim.api.nvim_create_buf(false, true)
+  local c1 = { id = 20, name = "cand-one", bufnr = buf1b, job = 601, cwd = cwd }
+  local c2 = { id = 21, name = "cand-two", bufnr = buf2b, job = 602, cwd = cwd }
+
+  agent.agents = { [20] = c1, [21] = c2 }
+  agent.last_focused_id = nil
+
+  local select_opts, chosen
+
+  vim.ui.select = function(items, opts, on_choice)
+    select_opts = opts
+    chosen = items[2]
+    on_choice(chosen)
+  end
+
+  vim.cmd("edit " .. vim.fn.fnameescape(file))
+  captured = nil
+  send.from_range(1, 2)
+
+  check(
+    "disambiguation: select prompt is 'Send to agent'",
+    select_opts ~= nil and select_opts.prompt == "Send to agent"
+  )
+  check(
+    "disambiguation: format_item returns candidate name",
+    select_opts ~= nil and chosen ~= nil and select_opts.format_item(chosen) == chosen.name
+  )
+  check("disambiguation: chansend called once", captured ~= nil)
+  check(
+    "disambiguation: job matches chosen candidate",
+    captured ~= nil and chosen ~= nil and captured.job == chosen.job
+  )
+  check(
+    "disambiguation: data is relpath:1-2 with trailing space, no newline",
+    captured ~= nil and captured.data == "pick.lua:1-2 "
+  )
+
+  vim.ui.select = function(_, _, on_choice)
+    on_choice(nil)
+  end
+  captured = nil
+  send.from_range(1, 2)
+  check("disambiguation cancel: chansend not called", captured == nil)
+
+  vim.ui.select = orig_select
+  vim.fn.chansend = orig_chansend
+  agent.agents = saved_agents
+  agent.last_focused_id = saved_last_focused_id
+  if vim.api.nvim_buf_is_valid(orig_buf) then
+    vim.api.nvim_set_current_buf(orig_buf)
+  end
+end
+
 vim.fn.writefile(out, os.getenv("AGENT_FLEET_TEST_OUT"))
 vim.cmd("qa!")
