@@ -67,8 +67,55 @@ resolved, candidates = send.resolve_target()
 check("no agents -> resolved nil", resolved == nil)
 check("no agents -> candidates empty list", candidates ~= nil and #candidates == 0)
 
+local buf3 = vim.api.nvim_create_buf(false, true)
+vim.api.nvim_buf_delete(buf3, { force = true })
+local a3 = { id = 3, name = "three", bufnr = buf3, job = 103, cwd = "/p" }
+
+agent.agents = { [1] = a1, [2] = a2, [3] = a3 }
+agent.last_focused_id = 3
+resolved, candidates = send.resolve_target()
+check("last_focused points at invalid buffer -> resolved nil", resolved == nil)
+check(
+  "last_focused points at invalid buffer -> candidates is live-only list of length 2",
+  candidates ~= nil and #candidates == 2
+)
+
 agent.agents = orig_agents
 agent.last_focused_id = orig_last_focused_id
+
+do
+  local config = require("agent-fleet.config")
+  local saved_agents = agent.agents
+  local saved_last_focused_id = agent.last_focused_id
+  local saved_seq = agent._seq
+
+  agent.agents = {}
+  agent.last_focused_id = nil
+
+  local cwd = vim.fn.tempname()
+  vim.fn.mkdir(cwd, "p")
+
+  config.setup({
+    agents = {
+      pi = { cmd = "true", session = { id_flag = "--session-id", name_flag = "--name", resume_flag = "--session" } },
+    },
+    start_insert = false,
+  })
+
+  local first = agent.launch({ agent = "pi", name = "spawn-focus-1", cwd = cwd })
+  local second = agent.launch({ agent = "pi", name = "spawn-focus-2", cwd = cwd })
+
+  check("spawn: launch returned first agent", first ~= nil)
+  check("spawn: launch returned second agent", second ~= nil)
+  check(
+    "spawn: last_focused_id is the second launched agent's id",
+    second ~= nil and agent.last_focused_id == second.id
+  )
+
+  agent.agents = saved_agents
+  agent.last_focused_id = saved_last_focused_id
+  agent._seq = saved_seq
+end
 
 vim.fn.writefile(out, os.getenv("AGENT_FLEET_TEST_OUT"))
 vim.cmd("qa!")

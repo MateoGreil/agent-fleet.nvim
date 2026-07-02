@@ -86,6 +86,7 @@ local function spawn(argv, cwd, meta)
     auto_named = meta.auto_named,
   }
   M.agents[meta.id] = agent
+  M.last_focused_id = meta.id
   vim.b[bufnr].agent_fleet = { id = meta.id, name = meta.name, agent = meta.kind }
   pcall(vim.api.nvim_buf_set_name, bufnr, "agent:" .. meta.name)
 
