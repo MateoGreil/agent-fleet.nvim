@@ -107,6 +107,19 @@ ships and what's planned. For the user-facing docs, see [README.md](README.md).
   `vim.b[bufnr].agent_fleet` metadata already set at launch, and refuses
   out-of-scope calls. Ship the agent-facing protocol as a doc/skill. Needs a
   design pass on the verb surface and security model before implementation.
+- **[ ] Review an agent's changes and hand the review back (proposal)** — review
+  the code an agent produced, right from the fleet, then feed that review back to
+  the same agent in one step. Idea: shell out to a code-review TUI —
+  [`tuicr`](https://github.com/agavra/tuicr), a vim-keybound, GitHub-style
+  continuous-diff reviewer purpose-built for AI-generated diffs (line/range/file
+  comments classified `issue`/`suggestion`/`note`/`praise`, review state
+  persisted across sessions) — launched as its own fleet buffer over the
+  reviewed agent's working tree / branch. Its markdown/clipboard export is
+  exactly the "share it back" payload: pipe that structured review straight into
+  the reviewed agent's live REPL (reusing the `:AgentSend` plumbing above) so a
+  review round-trips to the agent with no copy-paste. Still just a proposal — the
+  review tool (tuicr vs. alternatives), how we pin the reviewer to the right
+  agent's diff, and the hand-back UX all need a design pass when we get to it.
 - **[ ] Detached background mode (opt-in)** — when enabled, agents run under a
   PTY detacher (`abduco`/`dtach`) so closing nvim detaches them (they keep
   working) and reopening re-attaches them into buffers. Off by default to keep
