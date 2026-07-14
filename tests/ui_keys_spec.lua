@@ -139,6 +139,12 @@ check("d marks roster done", roster.get(idA) ~= nil and roster.get(idA).done == 
 check("d re-renders with DONE section", lines_have("DONE"))
 check("d keeps alpha visible after re-render", line_with("alpha") ~= nil)
 
+-- Case 4b: d again toggles the same row back to not-done
+cursor_to("alpha")
+cb["d"]()
+check("d again reverts roster done", roster.get(idA) ~= nil and roster.get(idA).done == false)
+check("d again keeps alpha visible after re-render", line_with("alpha") ~= nil)
+
 -- Case 5: x toggles archived state of the row under cursor
 cursor_to("beta")
 cb["x"]()

@@ -47,8 +47,9 @@ local function write_session(cwd, id, ts)
   return file
 end
 
--- Case 1: done_candidates includes a live agent and a disk-only (non-roster)
--- session; excludes a done one and an archived one.
+-- Case 1: done_candidates includes a live agent, a disk-only (non-roster)
+-- session, and an already-done one (so it can be un-done); excludes an
+-- archived one.
 local C1 = "/proj/c1"
 local id_plain = "11111111-1111-1111-1111-111111111111"
 local id_done = "11111111-1111-1111-1111-111111111112"
@@ -69,7 +70,7 @@ local dc = board.done_candidates(C1)
 check("case1 plain present", has_id(dc, id_plain))
 check("case1 live included", has_id(dc, id_live))
 check("case1 disk-only included", has_id(dc, id_disk))
-check("case1 done excluded", not has_id(dc, id_done))
+check("case1 done included", has_id(dc, id_done))
 check("case1 archived excluded", not has_id(dc, id_arch))
 check("case1 row shape", find_id(dc, id_live).live == true)
 
@@ -107,7 +108,9 @@ roster.ensure({ id = row3.id, type = "pi", name = row3.name, cwd = row3.cwd })
 roster.mark_done(row3.id)
 check("case3 entry materialized", roster.get(id3) ~= nil)
 check("case3 marked done", roster.get(id3).done == true)
-check("case3 drops out of done_candidates", not has_id(board.done_candidates(C3), id3))
+check("case3 stays in done_candidates so it can be un-done", has_id(board.done_candidates(C3), id3))
+roster.set_done(row3.id, false)
+check("case3 toggling again via set_done reverts done to false", roster.get(id3).done == false)
 
 -- Case 4: materialize-then-flag archive toggling a previously-untracked row.
 local C4 = "/proj/c4"

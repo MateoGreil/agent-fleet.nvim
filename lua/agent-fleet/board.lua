@@ -298,14 +298,7 @@ function M.render(rows, opts)
 end
 
 function M.done_candidates(cwd)
-  local rows = M.rows({ cwd = cwd or vim.fn.getcwd() })
-  local result = {}
-  for _, row in ipairs(rows) do
-    if not row.done then
-      result[#result + 1] = row
-    end
-  end
-  return result
+  return M.rows({ cwd = cwd or vim.fn.getcwd() })
 end
 
 function M.archive_candidates(cwd)
