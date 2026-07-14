@@ -141,5 +141,17 @@ local r7r = board.render({ arch_row }, { now_ms = NOW, cwd = "/d", show_archived
 check("t7 all-archived hidden -> empty", line_index(r7r.lines, "No agents in this directory.") ~= nil)
 check("t7 archived hint mentions N (from rows)", line_index(r7r.lines, "1 archived") ~= nil)
 
+-- Test 8: key-legend footer
+local r8 = board.render({ live_row, idle_row }, { now_ms = NOW, cwd = "/p" })
+local lines8 = r8.lines
+check("t8 legend line1 CR open present", line_index(lines8, "<CR> open") ~= nil)
+check("t8 legend line2 d done present", line_index(lines8, "d done") ~= nil)
+check("t8 legend line2 x archive present", line_index(lines8, "x archive") ~= nil)
+check("t8 legend line2 A archived present", line_index(lines8, "A archived") ~= nil)
+local ddone_idx = line_index(lines8, "d done")
+check("t8 legend d-done line inert (no line_to_row entry)", ddone_idx ~= nil and r8.line_to_row[ddone_idx] == nil)
+local ddone_hl = ddone_idx and hl_for(r8.highlights, ddone_idx - 1, "AgentFleetTime") or nil
+check("t8 legend d-done line has AgentFleetTime highlight", ddone_hl ~= nil)
+
 vim.fn.writefile(out, os.getenv("AGENT_FLEET_TEST_OUT"))
 vim.cmd("qa!")

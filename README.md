@@ -165,6 +165,8 @@ headers. `d`, `x` and `s` also work over a visual line selection (`V`): select a
 span of rows and the action applies to every agent in it at once. There is
 intentionally no `q` binding — leave the board with your usual buffer navigation.
 
+The board renders a muted key legend at the bottom, so these shortcuts stay discoverable without leaving the buffer.
+
 ## Configuration
 
 ```lua

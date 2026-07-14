@@ -294,6 +294,17 @@ function M.render(rows, opts)
     end
   end
 
+  lines[#lines + 1] = ""
+  local legend = {
+    "  <CR> open \u{00b7} a new \u{00b7} i prompt \u{00b7} r rename \u{00b7} s stop",
+    "  d done \u{00b7} x archive \u{00b7} A archived \u{00b7} R refresh",
+  }
+  for _, l in ipairs(legend) do
+    lines[#lines + 1] = l
+    highlights[#highlights + 1] =
+      { line = #lines - 1, col_start = 0, col_end = -1, hl_group = "AgentFleetTime" }
+  end
+
   return { lines = lines, highlights = highlights, line_to_row = line_to_row }
 end
 
