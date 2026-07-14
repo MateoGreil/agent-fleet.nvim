@@ -17,7 +17,7 @@ ships and what's planned. For the user-facing docs, see [README.md](README.md).
 - **[x] List & switch** — `:Agents` lists the agents of the **current directory**
   (live ones in this nvim merged with this cwd's pi sessions on disk, deduped by
   session id) and switches to the chosen one — focus if live, else resume.
-  `:AgentDone` marks an agent done (✓); `:AgentArchive` toggles archive (hidden
+  `:AgentDone` toggles an agent done / not done (✓); `:AgentArchive` toggles archive (hidden
   by default). Soft archive only — never deletes a session file. `:AgentRename`
   renames an agent (the current agent's buffer, or a picked one). `:AgentDone` /
   `:AgentArchive` also act on the current agent's buffer, closing (killing) its
