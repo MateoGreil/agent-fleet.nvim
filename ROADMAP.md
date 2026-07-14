@@ -127,6 +127,18 @@ ships and what's planned. For the user-facing docs, see [README.md](README.md).
   `--remote-send`, or the curated bridge verbs once built) without hand-rolling
   the msgpack-rpc call itself each time. Document the socket + verb set as part
   of the same agent-facing skill/doc as the control bridge.
+- **[ ] Agent spawns a new fleet agent (fan-out / delegate)** — let a running
+  agent add *another* agent to the fleet instead of doing the work itself: when
+  it thinks of a follow-up feature mid-task, it can spin off a sibling agent
+  seeded with a prompt of its choosing rather than derailing its own thread.
+  The mechanism falls straight out of the two bridge items above — over the
+  inherited `$NVIM` RPC socket the agent runs `:Agent <prompt>` in its host
+  nvim (e.g. `nvim --server $NVIM --remote-send` / `--remote-expr`), so the new
+  agent launches in the same cwd, lands on the board and auto-names like any
+  other. A cleaner surface may be preferable at implementation time — a
+  dedicated bridge verb (e.g. `spawn_agent { prompt, agent?, name? }`) rather
+  than poking the Ex command by hand — so the exact shape is deferred to when
+  we build the bridge.
 - **[ ] Review an agent's changes and hand the review back (proposal)** — review
   the code an agent produced, right from the fleet, then feed that review back to
   the same agent in one step. Idea: shell out to a code-review TUI —
