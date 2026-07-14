@@ -36,6 +36,9 @@ check(
 
 r.mark_done("aaa")
 check("mark_done", r.get("aaa").done == true)
+r.set_done("aaa", true)
+r.set_done("aaa", false)
+check("set_done toggles off", r.get("aaa").done == false)
 r.set_name("aaa", "x")
 check("set_name", r.get("aaa").name == "x")
 

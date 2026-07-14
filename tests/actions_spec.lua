@@ -62,6 +62,15 @@ local id_done2 = "dddddddd-dddd-dddd-dddd-dddddddddd02"
 actions.done({ id = id_done2, name = "doner2", cwd = "/proj/d", live = false })
 check("done non-live marks done", roster.get(id_done2) ~= nil and roster.get(id_done2).done == true)
 
+-- done: un-doing a live row -> returns false, not done, buffer kept
+local id_undone = "dddddddd-dddd-dddd-dddd-dddddddddd03"
+local buf_undone = make_term()
+local res_undone =
+  actions.done({ id = id_undone, name = "undoner", cwd = "/proj/d", live = true, bufnr = buf_undone, done = true })
+check("done returns false when un-doing", res_undone == false)
+check("undone clears done", roster.get(id_undone) ~= nil and roster.get(id_undone).done == false)
+check("undone keeps buffer", vim.api.nvim_buf_is_valid(buf_undone) == true)
+
 -- archive: live unarchived row -> returns true, archived, buffer wiped
 local id_arch = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa01"
 local buf_arch = make_term()

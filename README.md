@@ -116,7 +116,7 @@ fields to override. See [Configuration](#configuration).
 :AgentResume     " reopen a past agent of this directory (focus if live, else resume)
 :Agents          " list & switch agents of this directory (focus if live, else resume)
 :AgentsBoard     " open the live board buffer (sections, colors, per-row keymaps)
-:AgentDone       " mark an agent done (✓)
+:AgentDone       " toggle an agent done / not done (✓)
 :AgentArchive    " archive / unarchive an agent (hidden from :Agents by default)
 :AgentRename foo " rename the current agent (or pick one) to "foo"
 :AgentRename     " rename via a prompt (current agent, or pick one)
@@ -150,7 +150,7 @@ keys (`j`/`k`/`/`/`gg`); the per-row actions are:
 | Key | Action |
 | --- | ------ |
 | `<CR>` | switch to the agent under the cursor (focus its terminal if live, else resume it via its CLI) |
-| `d` | mark done (✓) |
+| `d` | toggle done (✓) |
 | `x` | archive / unarchive |
 | `r` | rename (prompt) |
 | `s` | stop — kill the live terminal without marking it done (still resumable) |

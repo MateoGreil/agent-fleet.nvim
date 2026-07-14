@@ -102,10 +102,14 @@ function M.set_name(id, name)
   end)
 end
 
-function M.mark_done(id)
+function M.set_done(id, done)
   return update(id, function(entry)
-    entry.done = true
+    entry.done = done
   end)
+end
+
+function M.mark_done(id)
+  return M.set_done(id, true)
 end
 
 function M.set_archived(id, archived)

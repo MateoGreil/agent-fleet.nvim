@@ -198,24 +198,36 @@ local function handle_enter()
   require("agent-fleet.agent").resume_session({ id = row.id, cwd = row.cwd, type = row.type })
 end
 
-local function mark_rows_done(rows)
+local function toggle_done_rows(rows)
   if #rows == 0 then
     return
   end
   local actions = require("agent-fleet.actions")
+  local done, undone = 0, 0
   for _, row in ipairs(rows) do
-    actions.done(row)
+    if actions.done(row) then
+      done = done + 1
+    else
+      undone = undone + 1
+    end
   end
   M.refresh()
   if #rows == 1 then
-    notify("marked done \u{2014} " .. rows[1].name)
-  else
-    notify("marked done \u{2014} " .. #rows .. " agents")
+    notify((done == 1 and "marked done" or "marked not done") .. " \u{2014} " .. rows[1].name)
+    return
   end
+  local parts = {}
+  if done > 0 then
+    parts[#parts + 1] = "done " .. done
+  end
+  if undone > 0 then
+    parts[#parts + 1] = "not done " .. undone
+  end
+  notify(table.concat(parts, ", "))
 end
 
 function M.done_range(line1, line2)
-  mark_rows_done(M.rows_in_range(line1, line2))
+  toggle_done_rows(M.rows_in_range(line1, line2))
 end
 
 local function handle_done()
@@ -223,7 +235,7 @@ local function handle_done()
   if not row then
     return
   end
-  mark_rows_done({ row })
+  toggle_done_rows({ row })
 end
 
 local function visual_line_range()

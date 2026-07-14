@@ -74,8 +74,11 @@ vim.api.nvim_create_user_command("AgentDone", function()
   local actions = require("agent-fleet.actions")
   local row = actions.current_row()
   if row then
-    actions.done(row)
-    vim.notify("agent-fleet: marked done \u{2014} " .. row.name, vim.log.levels.INFO)
+    local now = actions.done(row)
+    vim.notify(
+      ("agent-fleet: %s \u{2014} %s"):format(now and "marked done" or "marked not done", row.name),
+      vim.log.levels.INFO
+    )
     return
   end
   local cands = require("agent-fleet.board").done_candidates(vim.fn.getcwd())
@@ -85,17 +88,20 @@ vim.api.nvim_create_user_command("AgentDone", function()
   end
   local now = os.time() * 1000
   vim.ui.select(cands, {
-    prompt = "Mark done",
+    prompt = "Mark done / not done",
     format_item = function(row)
       return require("agent-fleet.board").format_row(row, now)
     end,
   }, function(chosen)
     if chosen then
-      actions.done(chosen)
-      vim.notify("agent-fleet: marked done \u{2014} " .. chosen.name, vim.log.levels.INFO)
+      local now = actions.done(chosen)
+      vim.notify(
+        ("agent-fleet: %s \u{2014} %s"):format(now and "marked done" or "marked not done", chosen.name),
+        vim.log.levels.INFO
+      )
     end
   end)
-end, { desc = "agent-fleet: mark a past agent done (current directory)" })
+end, { desc = "agent-fleet: toggle an agent done / not done (current directory)" })
 
 vim.api.nvim_create_user_command("AgentArchive", function()
   local actions = require("agent-fleet.actions")

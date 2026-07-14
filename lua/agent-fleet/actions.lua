@@ -26,9 +26,13 @@ end
 
 function M.done(row)
   local roster = require("agent-fleet.roster")
+  local now = not row.done
   roster.ensure({ id = row.id, type = row.type or "pi", name = row.name, cwd = row.cwd })
-  roster.mark_done(row.id)
-  M.close_live(row)
+  roster.set_done(row.id, now)
+  if now then
+    M.close_live(row)
+  end
+  return now
 end
 
 function M.archive(row)
