@@ -89,6 +89,22 @@ ships and what's planned. For the user-facing docs, see [README.md](README.md).
   carries `type`). Surface it **only when more than one type is present** in
   the listing — when every agent is the same type there's nothing to
   disambiguate, so no type marker is shown.
+- **[ ] Group sessions by theme on the board** — let the board group agents by
+  *topic* (the feature/bug they're about) instead of only by lifecycle section,
+  so a fleet of a dozen agents spread over three unrelated workstreams stays
+  readable: collapsible theme headers, each listing its agents with the
+  existing state + activity columns, lifecycle sections nested inside (or the
+  state kept as the row's color). A theme is a free-form label persisted on the
+  agent in the roster (`theme` field, alongside `name`/`done`/`archived`), so
+  it survives resume. Assignment needs: a per-row board key (e.g. `t`) to
+  set/clear an agent's theme via `vim.ui.input`/`vim.ui.select` over the themes
+  already in use, an `:AgentTheme [label]` command mirroring `:AgentRename`,
+  and an inherited default so an agent spawned by another (see the fan-out item
+  below) starts in its parent's theme. Ungrouped agents fall into a trailing
+  `no theme` group; grouping is only shown when at least one theme exists, so a
+  single-workstream fleet looks exactly as it does today. Later, the auto-naming
+  namer could also *propose* a theme by clustering the launch prompts — the
+  manual label lands first, the LLM suggestion is a follow-up.
 - **[ ] Scope config** — a `scope = "cwd" | "git-root" | "all"` option (default
   `"cwd"`) controlling which agents the board lists, plus a `:Agents!` bang to
   show all directories at once.
