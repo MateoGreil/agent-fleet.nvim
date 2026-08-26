@@ -104,6 +104,10 @@ ships and what's planned. For the user-facing docs, see [README.md](README.md).
   carries `type`). Surface it **only when more than one type is present** in
   the listing — when every agent is the same type there's nothing to
   disambiguate, so no type marker is shown.
+- **[ ] Skills in `New agent prompt`** — support entering a slash command such
+  as `/ships-prs` in the `New agent prompt` input (board `i`, `:Agent` with no
+  arguments) and pass it through so the agent interprets it as a pi skill
+  invocation rather than ordinary prompt text.
 - **[ ] Group sessions by theme on the board** — let the board group agents by
   *topic* (the feature/bug they're about) instead of only by lifecycle section,
   so a fleet of a dozen agents spread over three unrelated workstreams stays
