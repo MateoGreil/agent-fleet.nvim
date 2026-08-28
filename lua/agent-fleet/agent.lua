@@ -84,6 +84,7 @@ local function spawn(argv, cwd, meta)
     cwd = cwd,
     session_id = meta.session_id,
     auto_named = meta.auto_named,
+    spawned_ms = os.time() * 1000,
   }
   M.agents[meta.id] = agent
   M.last_focused_id = meta.id
@@ -143,11 +144,16 @@ function M.launch(opts)
 
   local session_id = nil
   local extra = {}
+  local has_prompt = type(opts.prompt) == "string" and vim.trim(opts.prompt) ~= ""
   if def.session then
-    session_id = require("agent-fleet.util").uuid()
-    extra = { def.session.id_flag, session_id, def.session.name_flag, name }
-    if type(opts.prompt) == "string" and vim.trim(opts.prompt) ~= "" then
-      extra[#extra + 1] = opts.prompt
+    if def.session.id_flag then
+      session_id = require("agent-fleet.util").uuid()
+      extra = { def.session.id_flag, session_id, def.session.name_flag, name }
+      if has_prompt then
+        extra[#extra + 1] = opts.prompt
+      end
+    elseif has_prompt and def.session.prompt_flag then
+      extra = { def.session.prompt_flag, opts.prompt }
     end
   end
 
@@ -178,7 +184,10 @@ function M.resume_session(spec)
   local kind = spec.type or "pi"
 
   for _, agent in pairs(M.agents) do
-    if agent.session_id == spec.id and vim.api.nvim_buf_is_valid(agent.bufnr) then
+    if
+      (agent.session_id == spec.id or ("live-" .. tostring(agent.id)) == spec.id)
+      and vim.api.nvim_buf_is_valid(agent.bufnr)
+    then
       local focused = false
       for _, win in ipairs(vim.api.nvim_tabpage_list_wins(0)) do
         if vim.api.nvim_win_get_buf(win) == agent.bufnr then
@@ -194,6 +203,11 @@ function M.resume_session(spec)
     end
   end
 
+  if type(spec.id) == "string" and spec.id:match("^live%-%d+$") then
+    vim.notify("agent-fleet: session not created yet", vim.log.levels.WARN)
+    return nil
+  end
+
   local def = cfg.agents[kind]
   if not def or not def.session then
     vim.notify("agent-fleet: cannot resume agent type '" .. tostring(kind) .. "'", vim.log.levels.ERROR)
@@ -203,7 +217,7 @@ function M.resume_session(spec)
   local backends = require("agent-fleet.backends")
   local backend = backends.resolve(kind)
   if backend.has_disk then
-    local session_file = backend.session_file(spec.cwd, cfg.agents[kind].sessions_dir, spec.id)
+    local session_file = backend.session_file(spec.cwd, cfg.agents[kind], spec.id)
     if not session_file then
       vim.notify("agent-fleet: session file not found for " .. spec.id, vim.log.levels.WARN)
       return nil

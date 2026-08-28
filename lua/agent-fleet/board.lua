@@ -4,8 +4,12 @@ local function live_by_cwd(cwd)
   local agent = require("agent-fleet.agent")
   local result = {}
   for _, entry in pairs(agent.agents) do
-    if entry.session_id ~= nil and entry.cwd == cwd then
-      result[entry.session_id] = entry
+    if entry.cwd == cwd then
+      if entry.session_id ~= nil then
+        result[entry.session_id] = entry
+      else
+        result["live-" .. tostring(entry.id)] = entry
+      end
     end
   end
   return result
@@ -31,9 +35,15 @@ function M.rows(opts)
   local disk_types = {}
   for agent_type, def in pairs(cfg.agents) do
     local backend = backends.resolve(agent_type)
+    local bdef = def
+    if opts.sessions_dir then
+      bdef = vim.tbl_extend("force", def, { sessions_dir = opts.sessions_dir })
+    end
+    if backend.refresh then
+      backend.refresh(cwd, bdef)
+    end
     if backend.has_disk then
-      local sdir = opts.sessions_dir or def.sessions_dir
-      for _, entry in ipairs(backend.list(cwd, sdir)) do
+      for _, entry in ipairs(backend.list(cwd, bdef)) do
         disk[entry.id] = entry
         disk_types[entry.id] = agent_type
       end
@@ -88,6 +98,9 @@ function M.rows(opts)
       name = roster_entry.name
     elseif live_entry then
       name = live_entry.name
+    elseif disk_entry and type(disk_entry.title) == "string"
+      and not disk_entry.title:match("^New session %- ") then
+      name = disk_entry.title
     else
       name = (row_type or "pi") .. ":" .. id:sub(1, 8)
     end
@@ -106,13 +119,21 @@ function M.rows(opts)
       local file = disk_entry and disk_entry.file or nil
       local state = "new"
       local last_activity = created_at
-      if file and row_type then
+      if disk_entry and disk_entry.state ~= nil and disk_entry.last_activity ~= nil then
+        state = disk_entry.state
+        last_activity = disk_entry.last_activity
+      elseif file and row_type then
         local backend = backends.resolve(row_type)
         local info = backend.tail_info(file)
         if info then
           state = info.state
           last_activity = info.last_activity
         end
+      end
+      local unbound = live_entry ~= nil and live_entry.session_id == nil
+      if unbound then
+        state = "new"
+        last_activity = live_entry.spawned_ms or created_at
       end
       rows[#rows + 1] = {
         id = id,
@@ -127,6 +148,7 @@ function M.rows(opts)
         created_at = created_at,
         state = state,
         last_activity = last_activity,
+        unbound = unbound or nil,
       }
     end
   end

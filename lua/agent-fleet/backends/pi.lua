@@ -54,7 +54,8 @@ local function mtime_ms(file)
   return 0
 end
 
-function M.list(cwd, sessions_dir)
+function M.list(cwd, def)
+  local sessions_dir = def.sessions_dir
   local dir = sessions_dir .. "/" .. M.cwd_slug(cwd)
   if vim.fn.isdirectory(dir) ~= 1 then
     return {}
@@ -161,7 +162,8 @@ function M.tail_info(file)
   }
 end
 
-function M.session_file(cwd, sessions_dir, id)
+function M.session_file(cwd, def, id)
+  local sessions_dir = def.sessions_dir
   local pattern = sessions_dir .. "/**/*_" .. id .. ".jsonl"
   local matches = vim.fn.glob(pattern, true, true)
   if type(matches) == "table" and #matches > 0 then

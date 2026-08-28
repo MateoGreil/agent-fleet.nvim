@@ -50,7 +50,7 @@ local function ms_for(ts)
   local id = string.format("%08d-0000-0000-0000-000000000000", ms_counter)
   local f = slug_dir .. "/" .. ts .. "_" .. id .. ".jsonl"
   vim.fn.writefile({ header(id, ts) }, f)
-  local list = sessions.list("/proj/x", oracle_dir)
+  local list = sessions.list("/proj/x", { sessions_dir = oracle_dir })
   for _, e in ipairs(list) do
     if e.id == id then
       return e.created_at

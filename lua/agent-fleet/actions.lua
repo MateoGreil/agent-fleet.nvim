@@ -25,6 +25,9 @@ function M.close_live(row)
 end
 
 function M.done(row)
+  if row.unbound then
+    return nil
+  end
   local roster = require("agent-fleet.roster")
   local now = not row.done
   roster.ensure({ id = row.id, type = row.type or "pi", name = row.name, cwd = row.cwd })
@@ -36,6 +39,9 @@ function M.done(row)
 end
 
 function M.archive(row)
+  if row.unbound then
+    return nil
+  end
   local roster = require("agent-fleet.roster")
   local now = not row.archived
   roster.ensure({ id = row.id, type = row.type or "pi", name = row.name, cwd = row.cwd })
@@ -47,6 +53,9 @@ function M.archive(row)
 end
 
 function M.rename(row, new_name, opts)
+  if row.unbound then
+    return nil
+  end
   if new_name == nil or new_name == "" then
     return
   end

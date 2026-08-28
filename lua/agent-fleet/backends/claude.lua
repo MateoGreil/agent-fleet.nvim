@@ -6,7 +6,8 @@ function M.slug(cwd)
   return cwd:gsub("[^%w]", "-")
 end
 
-function M.list(cwd, sessions_dir)
+function M.list(cwd, def)
+  local sessions_dir = def.sessions_dir
   local dir = sessions_dir .. "/" .. M.slug(cwd)
   if vim.fn.isdirectory(dir) ~= 1 then
     return {}
@@ -127,7 +128,8 @@ function M.tail_info(file)
   return { state = state, last_activity = last_activity }
 end
 
-function M.session_file(cwd, sessions_dir, id)
+function M.session_file(cwd, def, id)
+  local sessions_dir = def.sessions_dir
   local path = sessions_dir .. "/" .. M.slug(cwd) .. "/" .. id .. ".jsonl"
   if vim.fn.filereadable(path) == 1 then
     return path

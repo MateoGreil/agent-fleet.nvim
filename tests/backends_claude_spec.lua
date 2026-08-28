@@ -35,7 +35,7 @@ vim.fn.writefile({ '{"type":"user","message":{"role":"user"}}' }, file_b)
 vim.loop.fs_utime(file_a, 1000000000, 1000000000)
 vim.loop.fs_utime(file_b, 1000000001, 1000000001)
 
-local list_result = claude.list(cwd, tmp)
+local list_result = claude.list(cwd, { sessions_dir = tmp })
 check("list returns 2 entries", #list_result == 2)
 check("list entry 1 id is uuid_a", list_result[1].id == uuid_a)
 check("list entry 2 id is uuid_b", list_result[2].id == uuid_b)
@@ -43,7 +43,7 @@ check("list entry cwd matches scanned cwd", list_result[1].cwd == cwd)
 check("list entry file is readable", vim.fn.filereadable(list_result[1].file) == 1)
 check("list sorted by created_at ascending", list_result[1].created_at <= list_result[2].created_at)
 
-local empty_list = claude.list("/other/project", tmp)
+local empty_list = claude.list("/other/project", { sessions_dir = tmp })
 check("list missing dir returns empty table", type(empty_list) == "table" and #empty_list == 0)
 
 local tool_use_file = vim.fn.tempname()
@@ -154,10 +154,10 @@ vim.fn.writefile({ '{"type":"assistant","message":{"role":"assistant","stop_reas
 local info_no_stopped = claude.tail_info(no_stopped_file)
 check("never stopped state", info_no_stopped ~= nil and info_no_stopped.state ~= "stopped")
 
-local session_found = claude.session_file(cwd, tmp, uuid_a)
+local session_found = claude.session_file(cwd, { sessions_dir = tmp }, uuid_a)
 check("session_file found", session_found ~= nil and session_found == file_a)
 
-local session_missing = claude.session_file(cwd, tmp, "missing-id")
+local session_missing = claude.session_file(cwd, { sessions_dir = tmp }, "missing-id")
 check("session_file missing", session_missing == nil)
 
 local integration_tmp = vim.fn.tempname()

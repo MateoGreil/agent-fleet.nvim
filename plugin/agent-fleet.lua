@@ -94,6 +94,10 @@ vim.api.nvim_create_user_command("AgentDone", function()
     end,
   }, function(chosen)
     if chosen then
+      if chosen.unbound then
+        vim.notify("agent-fleet: session not created yet \u{2014} " .. chosen.name, vim.log.levels.INFO)
+        return
+      end
       local now = actions.done(chosen)
       vim.notify(
         ("agent-fleet: %s \u{2014} %s"):format(now and "marked done" or "marked not done", chosen.name),
@@ -127,6 +131,10 @@ vim.api.nvim_create_user_command("AgentArchive", function()
     end,
   }, function(chosen)
     if chosen then
+      if chosen.unbound then
+        vim.notify("agent-fleet: session not created yet \u{2014} " .. chosen.name, vim.log.levels.INFO)
+        return
+      end
       local now = actions.archive(chosen)
       vim.notify(
         ("agent-fleet: %s \u{2014} %s"):format(now and "archived" or "unarchived", chosen.name),
@@ -140,6 +148,10 @@ vim.api.nvim_create_user_command("AgentRename", function(opts)
   local actions = require("agent-fleet.actions")
 
   local function apply(target, name)
+    if target.unbound then
+      vim.notify("agent-fleet: session not created yet \u{2014} " .. target.name, vim.log.levels.INFO)
+      return
+    end
     actions.rename(target, name)
     vim.notify(("agent-fleet: renamed \u{2014} %s"):format(name), vim.log.levels.INFO)
   end

@@ -203,13 +203,19 @@ local function toggle_done_rows(rows)
     return
   end
   local actions = require("agent-fleet.actions")
-  local done, undone = 0, 0
+  local done, undone, skipped = 0, 0, 0
   for _, row in ipairs(rows) do
-    if actions.done(row) then
+    if row.unbound then
+      notify("session not created yet \u{2014} " .. row.name)
+      skipped = skipped + 1
+    elseif actions.done(row) then
       done = done + 1
     else
       undone = undone + 1
     end
+  end
+  if skipped == #rows then
+    return
   end
   M.refresh()
   if #rows == 1 then
@@ -266,13 +272,19 @@ local function archive_rows(rows)
     return
   end
   local actions = require("agent-fleet.actions")
-  local archived, unarchived = 0, 0
+  local archived, unarchived, skipped = 0, 0, 0
   for _, row in ipairs(rows) do
-    if actions.archive(row) then
+    if row.unbound then
+      notify("session not created yet \u{2014} " .. row.name)
+      skipped = skipped + 1
+    elseif actions.archive(row) then
       archived = archived + 1
     else
       unarchived = unarchived + 1
     end
+  end
+  if skipped == #rows then
+    return
   end
   M.refresh()
   if #rows == 1 then
@@ -315,6 +327,10 @@ local function handle_rename()
   vim.ui.input({ prompt = "Rename agent: ", default = row.name }, function(input)
     input = input and vim.trim(input)
     if input and input ~= "" then
+      if row.unbound then
+        notify("session not created yet \u{2014} " .. row.name)
+        return
+      end
       require("agent-fleet.actions").rename(row, input)
       M.refresh()
       notify("renamed \u{2014} " .. input)

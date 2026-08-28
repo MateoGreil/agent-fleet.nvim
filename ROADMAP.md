@@ -70,24 +70,18 @@ ships and what's planned. For the user-facing docs, see [README.md](README.md).
   Target resolution: the last-focused live agent → the single live agent when
   exactly one is running → `vim.ui.select` to pick when two or more are live
   → else it notifies and refuses when no agent is running.
+- **[x] opencode as a first-class fleet agent** — full-parity backend
+  (`backends/opencode.lua`) for opencode ≥ v1.17: recognized `opencode = {}`
+  preset, launch via `--prompt`, resume via `--session` (never `--fork`), roster
+  persistence with deferred binding (opencode assigns ids itself, so launched
+  agents appear on the board immediately and bind to their session once the TUI
+  creates it), and live `working`/`idle`/`error`/`new` state derived from
+  read-only `opencode db` SQLite snapshots (one throttled async query per board
+  refresh, `unknown` on failure). Disk-discovered opencode sessions appear under
+  their opencode title.
 
 ## Planned
 
-- **[ ] opencode as a first-class fleet agent** — same full-parity backend
-  treatment as Claude Code for [opencode](https://opencode.ai): a recognized
-  `opencode = {}` key in `setup()`, and launch / persistence / resume / live
-  state all working through `:Agents`, `:AgentsBoard` and friends. The CLI
-  surface fits the fleet model: the TUI takes an initial prompt (positional or
-  `--prompt`) and resume maps to `--session <id>` (never `--fork`, which would
-  branch the session instead of continuing it). The main design gap vs.
-  `pi`/`claude`: recent opencode releases (≥ v1.17) persist everything in a
-  **single SQLite database** (`~/.local/share/opencode/opencode.db`, WAL)
-  rather than one file per session — the legacy JSON tree under
-  `storage/{session,message,part}/…` is migrated away — so the bounded-tail
-  live-state derivation can't be reused as-is; the backend must list sessions
-  and derive `idle`/`working`/`error` from read-only SQLite queries (or via
-  the local server API / `opencode session list`) instead. Needs a design
-  pass on the source of truth before implementation.
 - **[ ] Pick the agent type at launch (opt-in)** — let the user choose *which*
   declared agent (`pi`, `claude`, …) `:Agent` and the board's `a` / `i` keys
   launch, instead of always using `default_agent`. Today the agent type isn't

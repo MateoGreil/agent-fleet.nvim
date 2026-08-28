@@ -32,14 +32,15 @@ your own keybindings.
 - **Background auto-naming** (opt-in) — name an agent from its launch prompt,
   optionally via a one-shot LLM namer.
 
-See [ROADMAP.md](ROADMAP.md) for what's shipped and what's planned. Today **pi**
-and **Claude Code** are supported end-to-end; other CLIs launch but aren't yet
-persisted/resumed.
+See [ROADMAP.md](ROADMAP.md) for what's shipped and what's planned. Today **pi**,
+**Claude Code** and **opencode** are supported end-to-end; other CLIs launch but
+aren't yet persisted/resumed.
 
 ## Requirements
 
 - Neovim 0.9+
-- At least one agent CLI on your `PATH` ([pi](https://pi.dev), `claude`, …)
+- At least one agent CLI on your `PATH` ([pi](https://pi.dev), `claude`,
+  `opencode`, …)
 
 ## Installation
 
@@ -62,6 +63,7 @@ With [lazy.nvim](https://github.com/folke/lazy.nvim):
       agents = {
         pi = {},
         claude = {},
+        opencode = {},
       },
       -- optional: background auto-naming via LLM
       auto_name = {
@@ -83,6 +85,7 @@ use({
       agents = {
         pi = {},
         claude = {},
+        opencode = {},
       },
       -- optional: background auto-naming via LLM
       auto_name = {
@@ -104,9 +107,10 @@ use({
 ```
 
 `setup()` is required, and **you must declare at least one agent** — there are
-no default agents. `pi` and `claude` are recognized keys that auto-fill their
-command and session settings, so `pi = {}` / `claude = {}` is enough; pass extra
-fields to override. See [Configuration](#configuration).
+no default agents. `pi`, `claude` and `opencode` are recognized keys that
+auto-fill their command and session settings, so `pi = {}` / `claude = {}` /
+`opencode = {}` is enough; pass extra fields to override. See
+[Configuration](#configuration).
 
 ## Usage
 
@@ -192,7 +196,7 @@ require("agent-fleet").setup({
 | Option          | Default | Description                                       |
 | --------------- | ------- | ------------------------------------------------- |
 | `default_agent` | (required when multiple agents declared) | Agent launched by `:Agent` with no argument. Implicit when exactly one agent is declared; required when two or more are declared; with zero agents declared the plugin notifies an error and commands no-op. |
-| `agents`        | (required — none by default) | Registry of declared agents (`key -> { cmd = … }`). You must declare at least one; `pi` and `claude` are recognized keys that auto-fill their presets (`{}` suffices). |
+| `agents`        | (required — none by default) | Registry of declared agents (`key -> { cmd = … }`). You must declare at least one; `pi`, `claude` and `opencode` are recognized keys that auto-fill their presets (`{}` suffices). |
 | `window`        | `"enew"`| Ex command that opens the agent window.           |
 | `start_insert`  | `true`  | Enter terminal insert mode after launching.       |
 | `follow_output` | `true`  | Auto-scroll an agent's terminal to the bottom on new output even when its window is not focused. |
@@ -200,10 +204,10 @@ require("agent-fleet").setup({
 
 ### Registering agents
 
-The `agents` registry maps a key to a command. **pi** and **Claude Code** are
-fully supported end-to-end (persist, resume, board listing with live state).
-Other CLIs will launch in a terminal but not appear on the board or be
-resumable unless they provide a session backend.
+The `agents` registry maps a key to a command. **pi**, **Claude Code** and
+**opencode** are fully supported end-to-end (persist, resume, board listing
+with live state). Other CLIs will launch in a terminal but not appear on the
+board or be resumable unless they provide a session backend.
 
 ```lua
 agents = {
@@ -220,11 +224,19 @@ shell**, so each token becomes a separate argument — no quoting, pipes, or
 `VAR=val` env prefixes. If you need shell features, point `cmd` at a wrapper
 script.
 
-Declaring `pi = {}` or `claude = {}` pulls in that agent's built-in preset
-(command, session flags, and on-disk session location); any field you set
-overrides the preset. A key with no matching preset (e.g. `aider = { cmd =
-"aider" }`) launches and is tracked while live, but is only persisted/resumed if
-you also give it a `session = { id_flag, name_flag, resume_flag }` block.
+Declaring `pi = {}`, `claude = {}` or `opencode = {}` pulls in that agent's
+built-in preset (command, session flags, and on-disk session location); any
+field you set overrides the preset. A key with no matching preset (e.g. `aider
+= { cmd = "aider" }`) launches and is tracked while live, but is only
+persisted/resumed if you also give it a `session = { id_flag, name_flag,
+resume_flag }` block.
+
+`opencode = {}` (requires opencode ≥ v1.17) sessions live in opencode's SQLite
+database (`~/.local/share/opencode/opencode.db`), read through `opencode db` —
+keep the binary on your `PATH`. opencode assigns session ids itself, so a
+launched agent appears immediately (as a fresh `new` row) and is bound to its
+session a moment later, once the TUI creates it; agents launched without a
+prompt bind when you send their first message.
 
 ### `window` — where the agent opens
 

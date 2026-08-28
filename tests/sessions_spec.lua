@@ -18,7 +18,7 @@ check(
 )
 
 local missing = vim.fn.tempname()
-local r_missing = sessions.list("/proj/x", missing)
+local r_missing = sessions.list("/proj/x", { sessions_dir = missing })
 check("missing dir returns empty", type(r_missing) == "table" and #r_missing == 0)
 
 local tmp = vim.fn.tempname()
@@ -41,7 +41,7 @@ local f_late = dir .. "/2026-06-01T12:00:00.000Z_" .. id_late .. ".jsonl"
 vim.fn.writefile({ header(id_early, "2026-01-01T00:00:00.000Z") }, f_early)
 vim.fn.writefile({ header(id_late, "2026-06-01T12:00:00.000Z") }, f_late)
 
-local r = sessions.list("/proj/x", tmp)
+local r = sessions.list("/proj/x", { sessions_dir = tmp })
 check("list returns 2", #r == 2)
 check("sorted ascending id", r[1] and r[2] and r[1].id == id_early and r[2].id == id_late)
 check(
@@ -58,7 +58,7 @@ local id_corrupt = "cccccccc-cccc-cccc-cccc-cccccccccccc"
 local f_corrupt = dir .. "/2026-03-01T00:00:00.000Z_" .. id_corrupt .. ".jsonl"
 vim.fn.writefile({ "this is not json {{{" }, f_corrupt)
 
-local r2 = sessions.list("/proj/x", tmp)
+local r2 = sessions.list("/proj/x", { sessions_dir = tmp })
 check("corrupt file still listed", #r2 == 3)
 check(
   "corrupt id from filename",

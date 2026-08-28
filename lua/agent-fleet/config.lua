@@ -13,6 +13,12 @@ M.presets = {
     sessions_dir = vim.fn.expand("~/.claude/projects"),
     session = { id_flag = "--session-id", name_flag = "--name", resume_flag = "--resume" },
   },
+  opencode = {
+    cmd = "opencode",
+    backend = "opencode",
+    sessions_dir = vim.fn.expand("~/.local/share/opencode"),
+    session = { resume_flag = "--session", prompt_flag = "--prompt" },
+  },
 }
 
 M.defaults = {
