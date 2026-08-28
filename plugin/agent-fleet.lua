@@ -72,15 +72,50 @@ end, { desc = "agent-fleet: list & switch agents of the current directory" })
 
 vim.api.nvim_create_user_command("AgentDone", function()
   local actions = require("agent-fleet.actions")
-  local row = actions.current_row()
-  if row then
+
+  local function apply(row)
     local now = actions.done(row)
+    if now == nil then
+      vim.notify("agent-fleet: session not created yet \u{2014} " .. row.name, vim.log.levels.INFO)
+      return
+    end
     vim.notify(
       ("agent-fleet: %s \u{2014} %s"):format(now and "marked done" or "marked not done", row.name),
       vim.log.levels.INFO
     )
+  end
+
+  local row = actions.current_row()
+  if row then
+    apply(row)
     return
   end
+
+  local live_row = actions.current_live_row()
+  local opencode = require("agent-fleet.backends.opencode")
+  local backends = require("agent-fleet.backends")
+  if live_row and live_row.unbound and backends.resolve(live_row.type) == opencode then
+    local retry_ms = 100
+    local max_retries = 50
+    local function wait_for_binding(attempt)
+      local bound = actions.row_for_buffer(live_row.bufnr)
+      if bound and not bound.unbound then
+        apply(bound)
+        return
+      end
+      if attempt >= max_retries then
+        vim.notify("agent-fleet: session not created yet \u{2014} " .. live_row.name, vim.log.levels.INFO)
+        return
+      end
+      require("agent-fleet.board").rows({ cwd = live_row.cwd })
+      vim.defer_fn(function()
+        wait_for_binding(attempt + 1)
+      end, retry_ms)
+    end
+    wait_for_binding(0)
+    return
+  end
+
   local cands = require("agent-fleet.board").done_candidates(vim.fn.getcwd())
   if #cands == 0 then
     vim.notify("agent-fleet: no agent to mark done", vim.log.levels.INFO)
@@ -98,11 +133,7 @@ vim.api.nvim_create_user_command("AgentDone", function()
         vim.notify("agent-fleet: session not created yet \u{2014} " .. chosen.name, vim.log.levels.INFO)
         return
       end
-      local now = actions.done(chosen)
-      vim.notify(
-        ("agent-fleet: %s \u{2014} %s"):format(now and "marked done" or "marked not done", chosen.name),
-        vim.log.levels.INFO
-      )
+      apply(chosen)
     end
   end)
 end, { desc = "agent-fleet: toggle an agent done / not done (current directory)" })

@@ -1,7 +1,10 @@
 local M = {}
 
-function M.current_row()
-  local meta = vim.b.agent_fleet
+local function row_for_buffer(bufnr)
+  if not bufnr or not vim.api.nvim_buf_is_valid(bufnr) then
+    return nil
+  end
+  local meta = vim.b[bufnr].agent_fleet
   if not meta then
     return nil
   end
@@ -10,10 +13,27 @@ function M.current_row()
   if not a or not a.bufnr or not vim.api.nvim_buf_is_valid(a.bufnr) then
     return nil
   end
+  local row = { id = a.session_id, name = a.name, cwd = a.cwd, type = a.agent, live = true, bufnr = a.bufnr }
   if type(a.session_id) ~= "string" then
+    row.unbound = true
+  end
+  return row
+end
+
+function M.row_for_buffer(bufnr)
+  return row_for_buffer(bufnr)
+end
+
+function M.current_live_row()
+  return row_for_buffer(vim.api.nvim_get_current_buf())
+end
+
+function M.current_row()
+  local row = M.current_live_row()
+  if not row or row.unbound then
     return nil
   end
-  return { id = a.session_id, name = a.name, cwd = a.cwd, type = a.agent, live = true, bufnr = a.bufnr }
+  return row
 end
 
 function M.close_live(row)
