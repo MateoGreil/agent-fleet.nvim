@@ -70,6 +70,7 @@ local function render_into(bufnr)
     cwd = cwd,
     show_archived = state.show_archived,
     archived_count = archived_count,
+    launch_input = require("agent-fleet.config").get().launch_input,
   })
 
   local lines = {}
@@ -396,12 +397,7 @@ local function handle_launch()
 end
 
 local function handle_launch_prompt()
-  vim.ui.input({ prompt = "New agent prompt: " }, function(input)
-    input = input and vim.trim(input)
-    if input and input ~= "" then
-      require("agent-fleet").launch({ prompt = input })
-    end
-  end)
+  require("agent-fleet.launch_input").interactive()
 end
 
 local function set_keymaps(bufnr)

@@ -127,6 +127,12 @@ auto-fill their command and session settings, so `pi = {}` / `claude = {}` /
 :AgentSend       " send the current line / visual selection to an agent as a file:line ref
 ```
 
+With `launch_input = "name"` (see [Configuration](#configuration)), both
+launch inputs ask differently: `:Agent` with no argument and the board's `i`
+key prompt for a **name** (`New agent name:`) and drop you straight into the
+agent's REPL with no seeded prompt, and `:Agent <args>` takes its arguments
+as the name.
+
 `:AgentSend` doesn't send file content — it sends a `path:line` (or
 `path:line1-line2` in visual mode) reference into the current or
 last-focused agent's terminal input, without moving focus or pressing Enter
@@ -159,7 +165,7 @@ keys (`j`/`k`/`/`/`gg`); the per-row actions are:
 | `r` | rename (prompt) |
 | `s` | stop — kill the live terminal without marking it done (still resumable) |
 | `a` | launch a new agent |
-| `i` | type a prompt, then launch a new agent started with it |
+| `i` | type a prompt (or a name, with `launch_input = "name"`), then launch a new agent with it |
 | `A` | toggle the archived section |
 | `R` / `gr` | refresh now |
 
@@ -182,6 +188,7 @@ require("agent-fleet").setup({
   },
   window = "enew",      -- where the agent terminal opens (see below)
   start_insert = true,  -- drop straight into terminal insert mode
+  launch_input = "prompt", -- what the launch input asks for: "prompt" or "name"
   follow_output = true, -- keep unfocused agent terminals scrolled to the bottom
   board = {             -- the :AgentsBoard buffer
     refresh_ms = 2000,  -- how often the open board re-renders
@@ -199,6 +206,7 @@ require("agent-fleet").setup({
 | `agents`        | (required — none by default) | Registry of declared agents (`key -> { cmd = … }`). You must declare at least one; `pi`, `claude` and `opencode` are recognized keys that auto-fill their presets (`{}` suffices). |
 | `window`        | `"enew"`| Ex command that opens the agent window.           |
 | `start_insert`  | `true`  | Enter terminal insert mode after launching.       |
+| `launch_input`  | `"prompt"` | What the interactive launch input (`:Agent` with no argument, board `i`) asks for: `"prompt"` (default — the agent's initial message) or `"name"` (name the agent, then land in its empty REPL). See [`launch_input`](#launch_input--name-first-launch). |
 | `follow_output` | `true`  | Auto-scroll an agent's terminal to the bottom on new output even when its window is not focused. |
 | `board.refresh_ms` | `2000` | How often (ms) the open `:AgentsBoard` re-renders. |
 
@@ -217,7 +225,8 @@ agents = {
 ```
 
 `default_agent` chooses which of these `:Agent` launches; the agent type is not
-a command argument (all of `:Agent`'s arguments become the new agent's name).
+a command argument (`:Agent <args>` seeds the new agent's prompt — or becomes
+its name with `launch_input = "name"`).
 
 `cmd` is split on spaces into an argv list and executed directly **without a
 shell**, so each token becomes a separate argument — no quoting, pipes, or
@@ -295,6 +304,25 @@ auto_name = {
 The namer is the only subprocess agent-fleet spawns itself; it runs via
 `jobstart` with an argv list (no shell), and it never passes `--name` or touches
 the session file.
+
+### `launch_input` — name-first launch
+
+By default every interactive launch input asks for a **prompt**: `:Agent` with
+no argument and the board's `i` key open a `New agent prompt:` input and seed
+the agent with your text. Set `launch_input = "name"` to flip the question:
+the input becomes `New agent name:`, you type a name, and the agent opens
+straight into its REPL with no seeded prompt — you hand it its first message
+yourself once inside. `:Agent <args>` follows the mode: the arguments become
+the **name** (instead of the prompt) and the agent launches immediately. An
+empty answer still cancels the launch.
+
+```lua
+launch_input = "prompt"  -- "prompt": input asks for the initial message (default)
+                         -- "name":   input asks for the agent's name, launch into an empty REPL
+```
+
+The board's key legend and empty-board hint follow the mode. An invalid value
+notifies an error and falls back to `"prompt"`.
 
 ### Board highlight groups
 

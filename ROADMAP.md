@@ -79,14 +79,23 @@ ships and what's planned. For the user-facing docs, see [README.md](README.md).
   read-only `opencode db` SQLite snapshots (one throttled async query per board
   refresh, `unknown` on failure). Disk-discovered opencode sessions appear under
   their opencode title.
+- **[x] Name-first launch (opt-in)** — `launch_input = "prompt" | "name"`
+  (default `"prompt"`, invalid values notify and fall back) swaps the
+  interactive `New agent prompt:` input for a `New agent name:` one: type a
+  name, press enter, and the agent launches straight into its REPL with no
+  seeded prompt. Applies everywhere the input appears today — `:Agent` with no
+  arguments and the board's `i` key (both now routed through one shared
+  module). In name mode, `:Agent <args>` takes its arguments as the name and
+  launches immediately; an empty answer cancels, as today. The board's key
+  legend and empty-board hint follow the mode.
 
 ## Planned
 
 - **[ ] Pick the agent type at launch (opt-in)** — let the user choose *which*
   declared agent (`pi`, `claude`, …) `:Agent` and the board's `a` / `i` keys
   launch, instead of always using `default_agent`. Today the agent type isn't
-  selectable from the commands — all of `:Agent`'s arguments become the new
-  agent's name, and launching a non-default agent requires the
+  selectable from the commands — `:Agent <args>` seeds the new agent's prompt
+  — and launching a non-default agent requires the
   `launch({ agent = … })` Lua API. Add a config flag (e.g. `pick_agent =
   true`, off by default) that inserts a `vim.ui.select` step before launch;
   when off, behavior is unchanged. The picker must **only** appear when two or

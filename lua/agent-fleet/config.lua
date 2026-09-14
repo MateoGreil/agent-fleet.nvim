@@ -26,6 +26,7 @@ M.defaults = {
   window = "enew",
   start_insert = true,
   follow_output = true,
+  launch_input = "prompt",
   board = {
     refresh_ms = 2000,
   },
@@ -42,6 +43,14 @@ M.options = {}
 function M.setup(opts)
   opts = opts or {}
   local merged = vim.tbl_deep_extend("force", vim.deepcopy(M.defaults), opts)
+
+  if merged.launch_input ~= "prompt" and merged.launch_input ~= "name" then
+    vim.notify(
+      "agent-fleet: launch_input must be 'prompt' or 'name' (got " .. vim.inspect(merged.launch_input) .. "); falling back to 'prompt'",
+      vim.log.levels.ERROR
+    )
+    merged.launch_input = "prompt"
+  end
 
   for key, decl in pairs(merged.agents) do
     local backend_key = decl.backend or (M.presets[key] and key)

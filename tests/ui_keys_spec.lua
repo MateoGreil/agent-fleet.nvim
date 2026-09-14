@@ -123,6 +123,31 @@ check("i cancelled does not launch", launch_calls == 0)
 vim.ui.input = orig_input
 af.launch = orig_launch
 
+-- i in name mode (launch_input = "name"): asks for a name, launches with it
+config.setup({ agents = { pi = { cmd = "true", sessions_dir = TMP } }, launch_input = "name" })
+launch_calls = 0
+launch_opts = nil
+local name_mode_prompt
+af.launch = function(opts)
+  launch_calls = launch_calls + 1
+  launch_opts = opts
+  return nil
+end
+vim.ui.input = function(opts, on_confirm)
+  name_mode_prompt = opts.prompt
+  on_confirm("  fix-login  ")
+end
+cb["i"]()
+check("i name mode asks 'New agent name:'", name_mode_prompt == "New agent name: ")
+check("i name mode launches with trimmed name", launch_opts ~= nil and launch_opts.name == "fix-login")
+check("i name mode passes no prompt", launch_opts ~= nil and launch_opts.prompt == nil)
+check("i name mode launches once", launch_calls == 1)
+vim.ui.input = orig_input
+af.launch = orig_launch
+
+-- restore the spec's original (prompt-mode) config for the cases below
+config.setup({ agents = { pi = { cmd = "true", sessions_dir = TMP } } })
+
 -- Case 2: row_under_cursor returns the right row on a content line
 cursor_to("alpha")
 local r = ui.row_under_cursor()

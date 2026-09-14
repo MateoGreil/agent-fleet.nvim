@@ -230,6 +230,13 @@ local function truncate_name(name)
   return name
 end
 
+local function launch_input_word(opts)
+  if opts.launch_input == "name" then
+    return "name"
+  end
+  return "prompt"
+end
+
 local function render_empty(opts, archived_in_rows)
   local cwd = opts.cwd or ""
   local archived_count = opts.archived_count or archived_in_rows or 0
@@ -242,7 +249,7 @@ local function render_empty(opts, archived_in_rows)
     "",
     placeholder,
     "",
-    "press  a  to launch   \u{00b7}   i  to launch with a prompt",
+    "press  a  to launch   \u{00b7}   i  to launch with a " .. launch_input_word(opts),
   }
   local highlights = {
     { line = 0, col_start = 0, col_end = -1, hl_group = "AgentFleetHeader" },
@@ -317,8 +324,9 @@ function M.render(rows, opts)
   end
 
   lines[#lines + 1] = ""
+  local input_word = launch_input_word(opts)
   local legend = {
-    "  <CR> open \u{00b7} a new \u{00b7} i prompt \u{00b7} r rename \u{00b7} s stop",
+    "  <CR> open \u{00b7} a new \u{00b7} i " .. input_word .. " \u{00b7} r rename \u{00b7} s stop",
     "  d done \u{00b7} x archive \u{00b7} A archived \u{00b7} R refresh",
   }
   for _, l in ipairs(legend) do

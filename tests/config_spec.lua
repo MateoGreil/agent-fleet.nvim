@@ -56,5 +56,23 @@ local c9 = config.get()
 check("empty agents allowed", c9.agents ~= nil)
 check("empty agents no default", c9.default_agent == nil)
 
+check("launch_input defaults to prompt", c9.launch_input == "prompt")
+
+local notified = {}
+local orig_notify = vim.notify
+vim.notify = function(msg, level)
+  notified[#notified + 1] = { msg = msg, level = level }
+end
+config.setup({ agents = { pi = {} }, launch_input = "bogus" })
+vim.notify = orig_notify
+check("invalid launch_input falls back to prompt", config.get().launch_input == "prompt")
+check(
+  "invalid launch_input notifies one error",
+  #notified == 1 and notified[1].level == vim.log.levels.ERROR and notified[1].msg:match("launch_input") ~= nil
+)
+
+config.setup({ agents = { pi = {} }, launch_input = "name" })
+check("launch_input name honored", config.get().launch_input == "name")
+
 vim.fn.writefile(out, os.getenv("AGENT_FLEET_TEST_OUT"))
 vim.cmd("qa!")

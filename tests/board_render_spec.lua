@@ -152,6 +152,16 @@ local ddone_idx = line_index(lines8, "d done")
 check("t8 legend d-done line inert (no line_to_row entry)", ddone_idx ~= nil and r8.line_to_row[ddone_idx] == nil)
 local ddone_hl = ddone_idx and hl_for(r8.highlights, ddone_idx - 1, "AgentFleetTime") or nil
 check("t8 legend d-done line has AgentFleetTime highlight", ddone_hl ~= nil)
+check("t8 prompt-mode legend says i prompt (default)", line_index(lines8, "i prompt") ~= nil)
+
+-- Test 8b: legend + empty-board hint reflect launch_input mode
+local r8n = board.render({ live_row }, { now_ms = NOW, cwd = "/p", launch_input = "name" })
+check("t8b name-mode legend says i name", line_index(r8n.lines, "i name") ~= nil)
+check("t8b name-mode legend drops i prompt", line_index(r8n.lines, "i prompt") == nil)
+
+local r7n = board.render({}, { now_ms = NOW, cwd = "/p", launch_input = "name" })
+check("t8b name-mode empty hint says with a name", line_index(r7n.lines, "to launch with a name") ~= nil)
+check("t8b name-mode empty hint drops prompt", line_index(r7n.lines, "to launch with a prompt") == nil)
 
 vim.fn.writefile(out, os.getenv("AGENT_FLEET_TEST_OUT"))
 vim.cmd("qa!")

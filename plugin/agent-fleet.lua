@@ -4,20 +4,10 @@ end
 vim.g.loaded_agent_fleet = true
 
 vim.api.nvim_create_user_command("Agent", function(opts)
-  local prompt = vim.trim(opts.args)
-  if prompt ~= "" then
-    require("agent-fleet").launch({ prompt = prompt })
-    return
-  end
-  vim.ui.input({ prompt = "New agent prompt: " }, function(input)
-    input = input and vim.trim(input)
-    if input and input ~= "" then
-      require("agent-fleet").launch({ prompt = input })
-    end
-  end)
+  require("agent-fleet.launch_input").from_args(opts.args)
 end, {
   nargs = "*",
-  desc = "agent-fleet: launch the default coding agent, prompting for an initial message (like the board's i key)",
+  desc = 'agent-fleet: launch the default coding agent (asks for a prompt, or a name with launch_input = "name")',
 })
 
 vim.api.nvim_create_user_command("AgentSend", function(opts)
