@@ -83,6 +83,7 @@ function M.list(cwd, def)
           cwd = header.cwd,
           created_at = created_at,
           file = file,
+          parent_session = header.parentSession,
         }
       end
     end

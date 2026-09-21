@@ -54,12 +54,33 @@ check(
   r[1] and r[2] and vim.fn.filereadable(r[1].file) == 1 and vim.fn.filereadable(r[2].file) == 1
 )
 
+local id_child = "dddddddd-dddd-dddd-dddd-dddddddddddd"
+local parent_session = "/sessions/parent.jsonl"
+local f_child = dir .. "/2026-07-01T00:00:00.000Z_" .. id_child .. ".jsonl"
+vim.fn.writefile({
+  string.format(
+    '{"type":"session","version":3,"id":"%s","timestamp":"2026-07-01T00:00:00.000Z","cwd":"/proj/x","parentSession":"%s"}',
+    id_child,
+    parent_session
+  ),
+}, f_child)
+local child_entry
+for _, entry in ipairs(sessions.list("/proj/x", { sessions_dir = tmp })) do
+  if entry.id == id_child then
+    child_entry = entry
+  end
+end
+check(
+  "child session exposes parent_session",
+  child_entry ~= nil and child_entry.parent_session == parent_session
+)
+
 local id_corrupt = "cccccccc-cccc-cccc-cccc-cccccccccccc"
 local f_corrupt = dir .. "/2026-03-01T00:00:00.000Z_" .. id_corrupt .. ".jsonl"
 vim.fn.writefile({ "this is not json {{{" }, f_corrupt)
 
 local r2 = sessions.list("/proj/x", { sessions_dir = tmp })
-check("corrupt file still listed", #r2 == 3)
+check("corrupt file still listed", #r2 == 4)
 check(
   "corrupt id from filename",
   (function()

@@ -3,6 +3,7 @@ vim.opt.runtimepath:append(vim.fn.getcwd())
 local ui = require("agent-fleet.ui")
 local roster = require("agent-fleet.roster")
 local config = require("agent-fleet.config")
+local sessions = require("agent-fleet.backends.pi")
 
 local out = {}
 local function check(name, cond)
@@ -16,6 +17,18 @@ config.setup({ agents = { pi = { cmd = "true", sessions_dir = TMP } } })
 local PROJ = TMP .. "/proj"
 vim.fn.mkdir(PROJ, "p")
 vim.fn.chdir(PROJ)
+
+local id_child = "11111111-1111-1111-1111-111111111111"
+local child_dir = TMP .. "/" .. sessions.cwd_slug(PROJ)
+vim.fn.mkdir(child_dir, "p")
+vim.fn.writefile({
+  string.format(
+    '{"type":"session","version":3,"id":"%s","timestamp":"2026-01-01T00:00:00.000Z","cwd":"%s","parentSession":"/sessions/parent.jsonl"}',
+    id_child,
+    PROJ
+  ),
+}, child_dir .. "/2026-01-01T00:00:00.000Z_" .. id_child .. ".jsonl")
+local child_name = "pi:" .. id_child:sub(1, 8)
 
 local idA = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
 local idB = "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"
@@ -68,11 +81,20 @@ end
 local cb = keymap_callbacks()
 
 -- Case 1: every required key is bound to a callback
-for _, key in ipairs({ "<CR>", "d", "x", "r", "s", "A", "R", "gr" }) do
+for _, key in ipairs({ "<CR>", "d", "x", "r", "s", "A", "S", "R", "gr" }) do
   check("keymap bound: " .. key, type(cb[key]) == "function")
 end
 check("launch key a bound", type(cb["a"]) == "function")
 check("launch key i bound", type(cb["i"]) == "function")
+check("child session hidden before S", line_with(child_name) == nil)
+if type(cb["S"]) == "function" then
+  cb["S"]()
+end
+check("S reveals child session", line_with(child_name) ~= nil)
+if type(cb["S"]) == "function" then
+  cb["S"]()
+end
+check("S again hides child session", line_with(child_name) == nil)
 
 -- Launch keymaps: stub agent-fleet.launch and vim.ui.input to capture intent
 local af = require("agent-fleet")

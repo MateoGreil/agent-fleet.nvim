@@ -153,9 +153,11 @@ yank with your usual nvim keys. `i` / `a` to type to the agent again.
 A dedicated, non-terminal buffer that opens in the current window and lists
 this directory's agents in lifecycle sections — **running**, **idle**, **done**,
 and (when toggled) **archived** — each row showing a live/dead marker, the
-derived state, the name, and a relative last-activity time. It re-renders on a
-timer while visible and reacts to agents exiting. Move with your normal nvim
-keys (`j`/`k`/`/`/`gg`); the per-row actions are:
+derived state, the name, and a relative last-activity time. Pi child sessions
+with a `parentSession` (subagents, forks, and clones) are hidden by default and
+can be toggled with `S`. It re-renders on a timer while visible and reacts to
+agents exiting. Move with your normal nvim keys (`j`/`k`/`/`/`gg`); the per-row
+actions are:
 
 | Key | Action |
 | --- | ------ |
@@ -167,6 +169,7 @@ keys (`j`/`k`/`/`/`gg`); the per-row actions are:
 | `a` | launch a new agent |
 | `i` | type a prompt (or a name, with `launch_input = "name"`), then launch a new agent with it |
 | `A` | toggle the archived section |
+| `S` | toggle Pi child sessions (subagents, forks, and clones) |
 | `R` / `gr` | refresh now |
 
 Switching, `a` and `i` hand the board's window to the agent (the board buffer

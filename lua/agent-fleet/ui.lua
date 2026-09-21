@@ -16,6 +16,7 @@ local state = {
   bufnr = nil,
   ns = nil,
   show_archived = false,
+  show_subagents = false,
   line_to_row = {},
   timer = nil,
 }
@@ -69,6 +70,7 @@ local function render_into(bufnr)
     now_ms = os.time() * 1000,
     cwd = cwd,
     show_archived = state.show_archived,
+    show_subagents = state.show_subagents,
     archived_count = archived_count,
     launch_input = require("agent-fleet.config").get().launch_input,
   })
@@ -392,6 +394,11 @@ local function handle_toggle_archived()
   M.refresh()
 end
 
+local function handle_toggle_subagents()
+  state.show_subagents = not state.show_subagents
+  M.refresh()
+end
+
 local function handle_launch()
   require("agent-fleet").launch({})
 end
@@ -413,6 +420,7 @@ local function set_keymaps(bufnr)
   vim.keymap.set("n", "a", handle_launch, opts)
   vim.keymap.set("n", "i", handle_launch_prompt, opts)
   vim.keymap.set("n", "A", handle_toggle_archived, opts)
+  vim.keymap.set("n", "S", handle_toggle_subagents, opts)
   vim.keymap.set("n", "R", M.refresh, opts)
   vim.keymap.set("n", "gr", M.refresh, opts)
 end
@@ -455,6 +463,7 @@ local function set_autocmds(bufnr)
       state.bufnr = nil
       state.line_to_row = {}
       state.show_archived = false
+      state.show_subagents = false
     end,
   })
 

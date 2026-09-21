@@ -148,6 +148,7 @@ function M.rows(opts)
         created_at = created_at,
         state = state,
         last_activity = last_activity,
+        parent_session = disk_entry and disk_entry.parent_session or nil,
         unbound = unbound or nil,
       }
     end
@@ -237,12 +238,35 @@ local function launch_input_word(opts)
   return "prompt"
 end
 
-local function render_empty(opts, archived_in_rows)
+local function render_empty(opts, archived_in_rows, subagents_in_rows, archived_subagents_in_rows)
   local cwd = opts.cwd or ""
   local archived_count = opts.archived_count or archived_in_rows or 0
+  local overlap = not opts.show_archived and not opts.show_subagents
+      and archived_subagents_in_rows
+    or 0
+  local archived_only = math.max(0, archived_count - overlap)
+  local subagents_only = math.max(0, subagents_in_rows - overlap)
   local placeholder = "No agents in this directory."
-  if not opts.show_archived and archived_count > 0 then
-    placeholder = placeholder .. "  (" .. archived_count .. " archived \u{2014} press A to show)"
+  if not opts.show_archived and archived_only > 0 then
+    placeholder = placeholder .. "  (" .. archived_only .. " archived \u{2014} press A to show)"
+  end
+  if not opts.show_subagents and subagents_only > 0 then
+    local noun = subagents_only == 1 and "subagent" or "subagents"
+    placeholder = placeholder
+      .. "  ("
+      .. subagents_only
+      .. " "
+      .. noun
+      .. " hidden \u{2014} press S to show)"
+  end
+  if overlap > 0 then
+    local noun = overlap == 1 and "archived subagent" or "archived subagents"
+    placeholder = placeholder
+      .. "  ("
+      .. overlap
+      .. " "
+      .. noun
+      .. " hidden \u{2014} press A and S to show)"
   end
   local lines = {
     "agent-fleet \u{00b7} " .. cwd,
@@ -261,20 +285,39 @@ function M.render(rows, opts)
   opts = opts or {}
   local now_ms = opts.now_ms or (os.time() * 1000)
   local show_archived = opts.show_archived or false
+  local show_subagents = opts.show_subagents or false
 
   local buckets = { RUNNING = {}, IDLE = {}, DONE = {}, ARCHIVED = {} }
+  local archived_in_rows = 0
+  local subagents_in_rows = 0
+  local archived_subagents_in_rows = 0
   for _, row in ipairs(rows) do
-    local section = section_of(row)
-    buckets[section][#buckets[section] + 1] = row
+    if row.archived then
+      archived_in_rows = archived_in_rows + 1
+    end
+    if row.parent_session then
+      subagents_in_rows = subagents_in_rows + 1
+      if row.archived then
+        archived_subagents_in_rows = archived_subagents_in_rows + 1
+      end
+    end
+    if show_subagents or not row.parent_session then
+      local section = section_of(row)
+      buckets[section][#buckets[section] + 1] = row
+    end
   end
-  local archived_in_rows = #buckets.ARCHIVED
 
   local visible_count = #buckets.RUNNING + #buckets.IDLE + #buckets.DONE
   if show_archived then
-    visible_count = visible_count + archived_in_rows
+    visible_count = visible_count + #buckets.ARCHIVED
   end
   if visible_count == 0 then
-    return render_empty(opts, archived_in_rows)
+    return render_empty(
+      opts,
+      archived_in_rows,
+      subagents_in_rows,
+      archived_subagents_in_rows
+    )
   end
 
   local lines = {}
@@ -327,7 +370,7 @@ function M.render(rows, opts)
   local input_word = launch_input_word(opts)
   local legend = {
     "  <CR> open \u{00b7} a new \u{00b7} i " .. input_word .. " \u{00b7} r rename \u{00b7} s stop",
-    "  d done \u{00b7} x archive \u{00b7} A archived \u{00b7} R refresh",
+    "  d done \u{00b7} x archive \u{00b7} A archived \u{00b7} S subagents \u{00b7} R refresh",
   }
   for _, l in ipairs(legend) do
     lines[#lines + 1] = l

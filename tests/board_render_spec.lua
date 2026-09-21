@@ -36,6 +36,26 @@ local done_row =
   { id = "D", name = "done-agent", live = false, done = true, archived = false, state = "stopped", last_activity = NOW - 7200000 }
 local arch_row =
   { id = "A", name = "arch-agent", live = false, done = false, archived = true, state = "idle", last_activity = NOW - 86400000 }
+local child_row = {
+  id = "C",
+  name = "child-agent",
+  live = false,
+  done = false,
+  archived = false,
+  state = "idle",
+  last_activity = NOW - 1800000,
+  parent_session = "/sessions/parent.jsonl",
+}
+local archived_child_row = {
+  id = "AC",
+  name = "archived-child-agent",
+  live = false,
+  done = false,
+  archived = true,
+  state = "idle",
+  last_activity = NOW - 1800000,
+  parent_session = "/sessions/parent.jsonl",
+}
 
 -- Test 1: section grouping & order, counts, archived visibility
 local r1 = board.render({ live_row, idle_row, done_row, arch_row }, { now_ms = NOW, cwd = "/p", show_archived = true })
@@ -52,6 +72,16 @@ check("t1 ARCHIVED count 1", line_index(r1.lines, "ARCHIVED  1") ~= nil)
 local r1h = board.render({ live_row, idle_row, done_row, arch_row }, { now_ms = NOW, cwd = "/p", show_archived = false })
 check("t1 archived header hidden", line_index(r1h.lines, "ARCHIVED") == nil)
 check("t1 archived row hidden", line_index(r1h.lines, "arch-agent") == nil)
+
+local r1c = board.render({ idle_row, child_row }, { now_ms = NOW, cwd = "/p" })
+check("t1 child row hidden by default", line_index(r1c.lines, "child-agent") == nil)
+check("t1 hidden child excluded from section count", line_index(r1c.lines, "IDLE  1") ~= nil)
+local r1cs = board.render(
+  { idle_row, child_row },
+  { now_ms = NOW, cwd = "/p", show_subagents = true }
+)
+check("t1 show_subagents reveals child row", line_index(r1cs.lines, "child-agent") ~= nil)
+check("t1 shown child included in section count", line_index(r1cs.lines, "IDLE  2") ~= nil)
 
 -- Test 2: empty sections omitted
 local r2 = board.render({ live_row, done_row }, { now_ms = NOW, cwd = "/p" })
@@ -141,6 +171,35 @@ local r7r = board.render({ arch_row }, { now_ms = NOW, cwd = "/d", show_archived
 check("t7 all-archived hidden -> empty", line_index(r7r.lines, "No agents in this directory.") ~= nil)
 check("t7 archived hint mentions N (from rows)", line_index(r7r.lines, "1 archived") ~= nil)
 
+local r7s = board.render({ child_row }, { now_ms = NOW, cwd = "/d" })
+check("t7 all-subagents hidden -> empty", line_index(r7s.lines, "No agents in this directory.") ~= nil)
+check("t7 subagent hint mentions N", line_index(r7s.lines, "1 subagent hidden") ~= nil)
+check("t7 subagent hint mentions S", line_index(r7s.lines, "press S to show") ~= nil)
+
+local r7ac = board.render({ archived_child_row }, { now_ms = NOW, cwd = "/d" })
+check(
+  "t7 archived subagent names both required toggles",
+  line_index(r7ac.lines, "1 archived subagent hidden \u{2014} press A and S to show") ~= nil
+)
+check("t7 archived subagent does not promise A alone", line_index(r7ac.lines, "archived \u{2014} press A to show") == nil)
+check("t7 archived subagent does not promise S alone", line_index(r7ac.lines, "subagent hidden \u{2014} press S to show") == nil)
+
+local r7ac_a = board.render(
+  { archived_child_row },
+  { now_ms = NOW, cwd = "/d", show_archived = true }
+)
+check("t7 archived shown still needs S", line_index(r7ac_a.lines, "press S to show") ~= nil)
+local r7ac_s = board.render(
+  { archived_child_row },
+  { now_ms = NOW, cwd = "/d", show_subagents = true }
+)
+check("t7 subagents shown still needs A", line_index(r7ac_s.lines, "press A to show") ~= nil)
+local r7ac_both = board.render(
+  { archived_child_row },
+  { now_ms = NOW, cwd = "/d", show_archived = true, show_subagents = true }
+)
+check("t7 both toggles reveal archived subagent", line_index(r7ac_both.lines, "archived-child-agent") ~= nil)
+
 -- Test 8: key-legend footer
 local r8 = board.render({ live_row, idle_row }, { now_ms = NOW, cwd = "/p" })
 local lines8 = r8.lines
@@ -148,6 +207,7 @@ check("t8 legend line1 CR open present", line_index(lines8, "<CR> open") ~= nil)
 check("t8 legend line2 d done present", line_index(lines8, "d done") ~= nil)
 check("t8 legend line2 x archive present", line_index(lines8, "x archive") ~= nil)
 check("t8 legend line2 A archived present", line_index(lines8, "A archived") ~= nil)
+check("t8 legend line2 S subagents present", line_index(lines8, "S subagents") ~= nil)
 local ddone_idx = line_index(lines8, "d done")
 check("t8 legend d-done line inert (no line_to_row entry)", ddone_idx ~= nil and r8.line_to_row[ddone_idx] == nil)
 local ddone_hl = ddone_idx and hl_for(r8.highlights, ddone_idx - 1, "AgentFleetTime") or nil

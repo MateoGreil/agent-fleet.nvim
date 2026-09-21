@@ -26,15 +26,17 @@ end
 local TMP = vim.fn.tempname()
 vim.fn.mkdir(TMP, "p")
 
-local function write_session(cwd, id, ts)
+local function write_session(cwd, id, ts, parent_session)
   local dir = TMP .. "/" .. sessions.cwd_slug(cwd)
   vim.fn.mkdir(dir, "p")
   local file = dir .. "/" .. ts .. "_" .. id .. ".jsonl"
+  local parent = parent_session and ',"parentSession":"' .. parent_session .. '"' or ""
   local header = string.format(
-    '{"type":"session","version":3,"id":"%s","timestamp":"%s","cwd":"%s"}',
+    '{"type":"session","version":3,"id":"%s","timestamp":"%s","cwd":"%s"%s}',
     id,
     ts,
-    cwd
+    cwd,
+    parent
   )
   vim.fn.writefile({ header }, file)
   return file
@@ -89,6 +91,16 @@ check("case2 disk-only appears", r2 ~= nil)
 check("case2 live false", r2 and r2.live == false)
 check("case2 name derived", r2 and r2.name == "pi:" .. id2:sub(1, 8))
 check("case2 file set", r2 and r2.file == f2)
+
+local C2_CHILD = "/proj/c2-child"
+local id2_child = "22222222-2222-2222-2222-222222222223"
+local parent2 = "/sessions/parent.jsonl"
+write_session(C2_CHILD, id2_child, "2026-02-03T00:00:00.000Z", parent2)
+local r2_child = find_row(board.rows({ cwd = C2_CHILD, sessions_dir = TMP }), id2_child)
+check(
+  "case2 child row carries parent_session",
+  r2_child ~= nil and r2_child.parent_session == parent2
+)
 
 -- Case 3: id in both live registry AND disk -> one deduped row
 local C3 = "/proj/c3"

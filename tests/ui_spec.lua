@@ -142,9 +142,11 @@ vim.cmd("enew")
 ui.open()
 local abuf = vim.api.nvim_get_current_buf()
 ui._state.show_archived = true
+ui._state.show_subagents = true
 vim.api.nvim_buf_delete(abuf, { force = true })
 vim.wait(50, function() return false end)
 check("wipeout resets show_archived to false", ui._state.show_archived == false)
+check("wipeout resets show_subagents to false", ui._state.show_subagents == false)
 
 -- Case 12: the timer actually ticks a refresh. Uses a short configured
 -- interval and a generous wait budget (250ms for a 50ms timer => ~4 ticks),
