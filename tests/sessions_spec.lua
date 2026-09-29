@@ -75,6 +75,38 @@ check(
   child_entry ~= nil and child_entry.parent_session == parent_session
 )
 
+local target_cwd = "/home/mat/electra/backend"
+local other_cwd = "/home/mat/electra-backend"
+check(
+  "colliding paths share a slug",
+  sessions.cwd_slug(target_cwd) == sessions.cwd_slug(other_cwd)
+)
+local collision_dir = tmp .. "/" .. sessions.cwd_slug(target_cwd)
+vim.fn.mkdir(collision_dir, "p")
+local target_id = "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee"
+local other_id = "ffffffff-ffff-ffff-ffff-ffffffffffff"
+vim.fn.writefile({
+  vim.json.encode({
+    type = "session",
+    id = target_id,
+    timestamp = "2026-01-01T00:00:00.000Z",
+    cwd = target_cwd,
+  }),
+}, collision_dir .. "/target_" .. target_id .. ".jsonl")
+vim.fn.writefile({
+  vim.json.encode({
+    type = "session",
+    id = other_id,
+    timestamp = "2026-01-02T00:00:00.000Z",
+    cwd = other_cwd,
+  }),
+}, collision_dir .. "/other_" .. other_id .. ".jsonl")
+local collision_rows = sessions.list(target_cwd, { sessions_dir = tmp })
+check(
+  "same-slug session from other cwd is excluded",
+  #collision_rows == 1 and collision_rows[1].id == target_id
+)
+
 local id_corrupt = "cccccccc-cccc-cccc-cccc-cccccccccccc"
 local f_corrupt = dir .. "/2026-03-01T00:00:00.000Z_" .. id_corrupt .. ".jsonl"
 vim.fn.writefile({ "this is not json {{{" }, f_corrupt)

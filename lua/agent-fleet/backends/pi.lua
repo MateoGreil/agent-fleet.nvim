@@ -76,7 +76,7 @@ function M.list(cwd, def)
       end
 
       local id = header.id or id_from_filename(name)
-      if id then
+      if id and (header.cwd == nil or header.cwd == cwd) then
         local created_at = parse_iso_ms(header.timestamp) or mtime_ms(file)
         entries[#entries + 1] = {
           id = id,
