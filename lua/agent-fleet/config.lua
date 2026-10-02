@@ -2,7 +2,7 @@ local M = {}
 
 M.presets = {
   pi = {
-    cmd = "pi",
+    cmd = "pi --tui-mode regular",
     backend = "pi",
     sessions_dir = vim.fn.expand("~/.pi/agent/sessions"),
     session = { id_flag = "--session-id", name_flag = "--name", resume_flag = "--session" },

@@ -9,7 +9,7 @@ end
 
 config.setup({ agents = { pi = {} } })
 local c1 = config.get()
-check("pi preset cmd", c1.agents.pi.cmd == "pi")
+check("pi preset cmd", c1.agents.pi.cmd == "pi --tui-mode regular")
 check("pi preset backend", c1.agents.pi.backend == "pi")
 check("pi preset resume_flag", c1.agents.pi.session.resume_flag == "--session")
 check("pi preset sessions_dir ends with .pi/agent/sessions", c1.agents.pi.sessions_dir:match("%.pi/agent/sessions$") ~= nil)
