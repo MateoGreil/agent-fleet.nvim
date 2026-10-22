@@ -246,7 +246,9 @@ built-in preset (command, session flags, and on-disk session location); any
 field you set overrides the preset. A key with no matching preset (e.g. `aider
 = { cmd = "aider" }`) launches and is tracked while live, but is only
 persisted/resumed if you also give it a `session = { id_flag, name_flag,
-resume_flag }` block.
+resume_flag }` block. CLIs that take their initial prompt as a positional
+argument (e.g. `vibe "do X"`) declare `session = { prompt_positional = true }`
+so the prompt is forwarded as the last argv element.
 
 `opencode = {}` (requires opencode ≥ v1.17) sessions live in opencode's SQLite
 database (`~/.local/share/opencode/opencode.db`), read through `opencode db` —

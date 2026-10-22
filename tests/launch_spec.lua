@@ -125,5 +125,53 @@ check("plain launch returned agent", c ~= nil)
 check("plain session_id is nil", c ~= nil and c.session_id == nil)
 check("no roster entry written for no-session agent", #roster.list({ include_archived = true }) == before)
 
+config.setup({
+  agents = {
+    pos = { cmd = "true", session = { prompt_positional = true } },
+    posflag = { cmd = "true", session = { prompt_flag = "--p", prompt_positional = true } },
+    posid = {
+      cmd = "true",
+      session = { id_flag = "--session-id", name_flag = "--name", prompt_positional = true },
+    },
+    nosess = { cmd = "true", session = {} },
+  },
+  start_insert = false,
+})
+
+vim.fn.jobstart = function(argv, _)
+  captured = vim.deepcopy(argv)
+  return 1
+end
+
+captured = nil
+agent.launch({ agent = "pos", name = "pos-with", cwd = cwd_pi, prompt = "do X" })
+check("prompt_positional: argv is cmd then prompt", captured ~= nil and deepeq(captured, { "true", "do X" }))
+
+captured = nil
+agent.launch({ agent = "pos", name = "pos-without", cwd = cwd_pi })
+check("prompt_positional: no prompt -> argv is just cmd", captured ~= nil and deepeq(captured, { "true" }))
+
+captured = nil
+agent.launch({ agent = "posflag", name = "pos-flag", cwd = cwd_pi, prompt = "do X" })
+check("prompt_flag wins over prompt_positional", captured ~= nil and deepeq(captured, { "true", "--p", "do X" }))
+
+captured = nil
+agent.launch({ agent = "posid", name = "pos-id", cwd = cwd_pi, prompt = "do X" })
+check(
+  "id_flag wins over prompt_positional",
+  captured ~= nil
+    and #captured == 6
+    and captured[2] == "--session-id"
+    and captured[4] == "--name"
+    and captured[5] == "pos-id"
+    and captured[6] == "do X"
+)
+
+captured = nil
+agent.launch({ agent = "nosess", name = "no-session", cwd = cwd_pi, prompt = "do X" })
+check("empty session: prompt still dropped", captured ~= nil and deepeq(captured, { "true" }))
+
+vim.fn.jobstart = orig_jobstart
+
 vim.fn.writefile(out, os.getenv("AGENT_FLEET_TEST_OUT"))
 vim.cmd("qa!")

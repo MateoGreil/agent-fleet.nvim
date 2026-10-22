@@ -154,6 +154,8 @@ function M.launch(opts)
       end
     elseif has_prompt and def.session.prompt_flag then
       extra = { def.session.prompt_flag, opts.prompt }
+    elseif has_prompt and def.session.prompt_positional == true then
+      extra = { opts.prompt }
     end
   end
 
