@@ -19,7 +19,7 @@ your own keybindings.
 
 ## Features
 
-- **Launch** agents into a native terminal, with an optional initial prompt.
+- **Launch** agents into a native terminal, with an optional initial prompt, or pick one via `:AgentPick`.
 - **Persist & resume** — a roster on disk; reopen a past agent (focus it if
   live, else relaunch it via its CLI's resume flag in its original cwd).
 - **List & switch** the agents of the current directory, live ones merged with
@@ -51,6 +51,7 @@ With [lazy.nvim](https://github.com/folke/lazy.nvim):
   "MateoGreil/agent-fleet.nvim",
   keys = {
     { "<leader>aa", "<cmd>Agent<cr>", desc = "Agent Fleet: launch agent" },
+    { "<leader>aA", "<cmd>AgentPick<cr>", desc = "Agent Fleet: pick agent & launch" },
     { "<leader>al", "<cmd>Agents<cr>", desc = "Agent Fleet: list & switch" },
     { "<leader>ab", "<cmd>AgentsBoard<cr>", desc = "Agent Fleet: board" },
     { "<leader>ad", "<cmd>AgentDone<cr>", desc = "Agent Fleet: done" },
@@ -96,6 +97,7 @@ use({
 
     local map = vim.keymap.set
     map("n", "<leader>aa", "<cmd>Agent<cr>", { desc = "Agent Fleet: launch agent" })
+    map("n", "<leader>aA", "<cmd>AgentPick<cr>", { desc = "Agent Fleet: pick agent & launch" })
     map("n", "<leader>al", "<cmd>Agents<cr>", { desc = "Agent Fleet: list & switch" })
     map("n", "<leader>ab", "<cmd>AgentsBoard<cr>", { desc = "Agent Fleet: board" })
     map("n", "<leader>ad", "<cmd>AgentDone<cr>", { desc = "Agent Fleet: done" })
@@ -117,6 +119,8 @@ auto-fill their command and session settings, so `pi = {}` / `claude = {}` /
 ```vim
 :Agent           " launch the default agent, prompting for an initial message (like the board's i)
 :Agent fix auth  " launch the default agent with "fix auth" as the initial prompt
+:AgentPick       " pick an agent, then prompt for an initial message
+:AgentPick fix auth  " pick an agent, then launch it with "fix auth" as the initial prompt
 :AgentResume     " reopen a past agent of this directory (focus if live, else resume)
 :Agents          " list & switch agents of this directory (focus if live, else resume)
 :AgentsBoard     " open the live board buffer (sections, colors, per-row keymaps)
@@ -168,11 +172,12 @@ actions are:
 | `s` | stop — kill the live terminal without marking it done (still resumable) |
 | `a` | launch a new agent |
 | `i` | type a prompt (or a name, with `launch_input = "name"`), then launch a new agent with it |
+| `I` | launch with the agent picker |
 | `A` | toggle the archived section |
 | `S` | toggle Pi child sessions (subagents, forks, and clones) |
 | `R` / `gr` | refresh now |
 
-Switching, `a` and `i` hand the board's window to the agent (the board buffer
+Switching, `a`, `i` and `I` hand the board's window to the agent (the board buffer
 is wiped; reopen with `:AgentsBoard`). Action keys are no-ops on section
 headers. `d`, `x` and `s` also work over a visual line selection (`V`): select a
 span of rows and the action applies to every agent in it at once. There is

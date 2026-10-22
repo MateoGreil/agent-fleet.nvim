@@ -86,6 +86,7 @@ for _, key in ipairs({ "<CR>", "d", "x", "r", "s", "A", "S", "R", "gr" }) do
 end
 check("launch key a bound", type(cb["a"]) == "function")
 check("launch key i bound", type(cb["i"]) == "function")
+check("launch key I bound", type(cb["I"]) == "function")
 check("child session hidden before S", line_with(child_name) == nil)
 if type(cb["S"]) == "function" then
   cb["S"]()
@@ -169,6 +170,41 @@ af.launch = orig_launch
 
 -- restore the spec's original (prompt-mode) config for the cases below
 config.setup({ agents = { pi = { cmd = "true", sessions_dir = TMP } } })
+
+-- I: launch with the agent picker
+launch_calls = 0
+launch_opts = nil
+local select_items
+local orig_select = vim.ui.select
+vim.ui.select = function(items, _, on_choice)
+  select_items = items
+  on_choice("claude")
+end
+vim.ui.input = function(_, on_confirm)
+  on_confirm("  do the agent thing  ")
+end
+af.launch = function(opts)
+  launch_calls = launch_calls + 1
+  launch_opts = opts
+  return nil
+end
+cb["I"]()
+check("I calls launch once", launch_calls == 1)
+check("I passes chosen agent key", launch_opts ~= nil and launch_opts.agent == "claude")
+check("I passes trimmed prompt", launch_opts ~= nil and launch_opts.prompt == "do the agent thing")
+check("I select receives agent items", select_items ~= nil and #select_items > 0)
+
+-- I cancelled (nil selection) -> launch not called
+launch_calls = 0
+vim.ui.select = function(_, _, on_choice)
+  on_choice(nil)
+end
+cb["I"]()
+check("I cancelled does not launch", launch_calls == 0)
+
+vim.ui.input = orig_input
+vim.ui.select = orig_select
+af.launch = orig_launch
 
 -- Case 2: row_under_cursor returns the right row on a content line
 cursor_to("alpha")

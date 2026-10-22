@@ -10,6 +10,13 @@ end, {
   desc = 'agent-fleet: launch the default coding agent (asks for a prompt, or a name with launch_input = "name")',
 })
 
+vim.api.nvim_create_user_command("AgentPick", function(opts)
+  require("agent-fleet.launch_input").pick_from_args(opts.args)
+end, {
+  nargs = "*",
+  desc = "agent-fleet: pick an agent, then launch it (asks for a prompt, or a name with launch_input = \"name\")",
+})
+
 vim.api.nvim_create_user_command("AgentSend", function(opts)
   require("agent-fleet.send").from_range(opts.line1, opts.line2)
 end, {

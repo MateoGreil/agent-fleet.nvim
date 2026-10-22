@@ -204,6 +204,7 @@ check("t7 both toggles reveal archived subagent", line_index(r7ac_both.lines, "a
 local r8 = board.render({ live_row, idle_row }, { now_ms = NOW, cwd = "/p" })
 local lines8 = r8.lines
 check("t8 legend line1 CR open present", line_index(lines8, "<CR> open") ~= nil)
+check("t8 legend line1 I pick present", line_index(lines8, "I pick") ~= nil)
 check("t8 legend line2 d done present", line_index(lines8, "d done") ~= nil)
 check("t8 legend line2 x archive present", line_index(lines8, "x archive") ~= nil)
 check("t8 legend line2 A archived present", line_index(lines8, "A archived") ~= nil)

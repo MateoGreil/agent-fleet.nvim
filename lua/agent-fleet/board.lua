@@ -369,7 +369,7 @@ function M.render(rows, opts)
   lines[#lines + 1] = ""
   local input_word = launch_input_word(opts)
   local legend = {
-    "  <CR> open \u{00b7} a new \u{00b7} i " .. input_word .. " \u{00b7} r rename \u{00b7} s stop",
+    "  <CR> open \u{00b7} a new \u{00b7} i " .. input_word .. " \u{00b7} I pick \u{00b7} r rename \u{00b7} s stop",
     "  d done \u{00b7} x archive \u{00b7} A archived \u{00b7} S subagents \u{00b7} R refresh",
   }
   for _, l in ipairs(legend) do

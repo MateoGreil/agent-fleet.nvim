@@ -407,6 +407,10 @@ local function handle_launch_prompt()
   require("agent-fleet.launch_input").interactive()
 end
 
+local function handle_launch_pick()
+  require("agent-fleet.launch_input").interactive_pick()
+end
+
 local function set_keymaps(bufnr)
   local opts = { buffer = bufnr, nowait = true, silent = true, noremap = true }
   vim.keymap.set("n", "<CR>", handle_enter, opts)
@@ -419,6 +423,7 @@ local function set_keymaps(bufnr)
   vim.keymap.set("x", "s", handle_stop_visual, opts)
   vim.keymap.set("n", "a", handle_launch, opts)
   vim.keymap.set("n", "i", handle_launch_prompt, opts)
+  vim.keymap.set("n", "I", handle_launch_pick, opts)
   vim.keymap.set("n", "A", handle_toggle_archived, opts)
   vim.keymap.set("n", "S", handle_toggle_subagents, opts)
   vim.keymap.set("n", "R", M.refresh, opts)
