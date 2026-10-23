@@ -148,7 +148,7 @@ local function cursor_to(name)
 end
 
 local cb = keymap_callbacks()
-cb["A"]()
+cb["X"]()
 check("archived rows revealed", line_with("Vibe archived work") ~= nil)
 
 local notified = {}
