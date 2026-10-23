@@ -64,6 +64,12 @@ function M.archive(row)
   end
   local roster = require("agent-fleet.roster")
   local now = not row.archived
+  if not now then
+    local entry = roster.get(row.id)
+    if not (entry and entry.archived) then
+      return "vibe"
+    end
+  end
   roster.ensure({ id = row.id, type = row.type or "pi", name = row.name, cwd = row.cwd })
   roster.set_archived(row.id, now)
   if now then

@@ -23,7 +23,7 @@ your own keybindings.
 - **Persist & resume** — a roster on disk; reopen a past agent (focus it if
   live, else relaunch it via its CLI's resume flag in its original cwd).
 - **List & switch** the agents of the current directory, live ones merged with
-  on-disk sessions (pi and Claude) and deduped.
+  on-disk sessions (pi, Claude Code, opencode and Vibe) and deduped.
 - **Live board** (`:AgentsBoard`) — a dedicated buffer grouping agents into
   running / idle / done / archived sections, with colored state and relative
   last-activity times, refreshing on a timer.
@@ -33,8 +33,8 @@ your own keybindings.
   optionally via a one-shot LLM namer.
 
 See [ROADMAP.md](ROADMAP.md) for what's shipped and what's planned. Today **pi**,
-**Claude Code** and **opencode** are supported end-to-end; other CLIs launch but
-aren't yet persisted/resumed.
+**Claude Code**, **opencode** and **Vibe** are supported end-to-end; other CLIs
+launch but aren't yet persisted/resumed.
 
 ## Requirements
 
@@ -212,7 +212,7 @@ require("agent-fleet").setup({
 | Option          | Default | Description                                       |
 | --------------- | ------- | ------------------------------------------------- |
 | `default_agent` | (required when multiple agents declared) | Agent launched by `:Agent` with no argument. Implicit when exactly one agent is declared; required when two or more are declared; with zero agents declared the plugin notifies an error and commands no-op. |
-| `agents`        | (required — none by default) | Registry of declared agents (`key -> { cmd = … }`). You must declare at least one; `pi`, `claude` and `opencode` are recognized keys that auto-fill their presets (`{}` suffices). |
+| `agents`        | (required — none by default) | Registry of declared agents (`key -> { cmd = … }`). You must declare at least one; `pi`, `claude`, `opencode` and `vibe` are recognized keys that auto-fill their presets (`{}` suffices). |
 | `window`        | `"enew"`| Ex command that opens the agent window.           |
 | `start_insert`  | `true`  | Enter terminal insert mode after launching.       |
 | `launch_input`  | `"prompt"` | What the interactive launch input (`:Agent` with no argument, board `i`) asks for: `"prompt"` (default — the agent's initial message) or `"name"` (name the agent, then land in its empty REPL). See [`launch_input`](#launch_input--name-first-launch). |
@@ -221,10 +221,10 @@ require("agent-fleet").setup({
 
 ### Registering agents
 
-The `agents` registry maps a key to a command. **pi**, **Claude Code** and
-**opencode** are fully supported end-to-end (persist, resume, board listing
-with live state). Other CLIs will launch in a terminal but not appear on the
-board or be resumable unless they provide a session backend.
+The `agents` registry maps a key to a command. **pi**, **Claude Code**,
+**opencode** and **Vibe** are fully supported end-to-end (persist, resume,
+board listing with live state). Other CLIs will launch in a terminal but not
+appear on the board or be resumable unless they provide a session backend.
 
 ```lua
 agents = {
@@ -264,7 +264,9 @@ prompt bind when you send their first message.
 
 `vibe = {}` sessions live in `~/.vibe/logs/session` (Vibe's
 `[session_logging] save_dir`); Vibe assigns session ids and generates titles
-itself, and resume runs `vibe --resume <session-id>`.
+itself, so a launched agent appears immediately and is bound to its session a
+moment later, once Vibe writes it. Resume runs `vibe --resume <session-id>`;
+sessions archived on Vibe's side show in the board's ARCHIVED section.
 
 ### `window` — where the agent opens
 

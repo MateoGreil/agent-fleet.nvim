@@ -88,6 +88,16 @@ ships and what's planned. For the user-facing docs, see [README.md](README.md).
   module). In name mode, `:Agent <args>` takes its arguments as the name and
   launches immediately; an empty answer cancels, as today. The board's key
   legend and empty-board hint follow the mode.
+- **[x] Vibe as a first-class fleet agent** — full-parity backend
+  (`backends/vibe.lua`) for Mistral's Vibe CLI: recognized `vibe = {}` preset,
+  launch via positional prompt, resume via `--resume <session-id>`, roster
+  persistence with deferred binding (Vibe assigns ids itself, so launched
+  agents appear on the board immediately and bind to their session a moment
+  later, once Vibe writes it), and live `working`/`idle` state derived from
+  the on-disk session `meta.json`. Disk-discovered Vibe sessions appear under
+  their Vibe-generated title, and sessions archived on Vibe's side land in
+  the board's ARCHIVED section. Sub-agent sessions stay hidden, parity with
+  pi child sessions (PR #12).
 
 ## Planned
 

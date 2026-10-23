@@ -275,18 +275,24 @@ local function archive_rows(rows)
     return
   end
   local actions = require("agent-fleet.actions")
-  local archived, unarchived, skipped = 0, 0, 0
+  local archived, unarchived, skipped, vibe_archived = 0, 0, 0, 0
   for _, row in ipairs(rows) do
     if row.unbound then
       notify("session not created yet \u{2014} " .. row.name)
       skipped = skipped + 1
-    elseif actions.archive(row) then
-      archived = archived + 1
     else
-      unarchived = unarchived + 1
+      local now = actions.archive(row)
+      if now == "vibe" then
+        notify("archived by vibe \u{2014} unarchive from the vibe CLI \u{2014} " .. row.name)
+        vibe_archived = vibe_archived + 1
+      elseif now then
+        archived = archived + 1
+      else
+        unarchived = unarchived + 1
+      end
     end
   end
-  if skipped == #rows then
+  if skipped + vibe_archived == #rows then
     return
   end
   M.refresh()

@@ -137,13 +137,25 @@ end, { desc = "agent-fleet: toggle an agent done / not done (current directory)"
 
 vim.api.nvim_create_user_command("AgentArchive", function()
   local actions = require("agent-fleet.actions")
-  local row = actions.current_row()
-  if row then
+
+  local function apply(row)
     local now = actions.archive(row)
+    if now == "vibe" then
+      vim.notify(
+        ("agent-fleet: archived by vibe \u{2014} unarchive from the vibe CLI \u{2014} %s"):format(row.name),
+        vim.log.levels.INFO
+      )
+      return
+    end
     vim.notify(
       ("agent-fleet: %s \u{2014} %s"):format(now and "archived" or "unarchived", row.name),
       vim.log.levels.INFO
     )
+  end
+
+  local row = actions.current_row()
+  if row then
+    apply(row)
     return
   end
   local cands = require("agent-fleet.board").archive_candidates(vim.fn.getcwd())
@@ -163,11 +175,7 @@ vim.api.nvim_create_user_command("AgentArchive", function()
         vim.notify("agent-fleet: session not created yet \u{2014} " .. chosen.name, vim.log.levels.INFO)
         return
       end
-      local now = actions.archive(chosen)
-      vim.notify(
-        ("agent-fleet: %s \u{2014} %s"):format(now and "archived" or "unarchived", chosen.name),
-        vim.log.levels.INFO
-      )
+      apply(chosen)
     end
   end)
 end, { desc = "agent-fleet: archive / unarchive a past agent (current directory)" })

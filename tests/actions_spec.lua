@@ -79,9 +79,11 @@ check("archive returns true when archiving", res == true)
 check("archive sets archived", roster.get(id_arch) ~= nil and roster.get(id_arch).archived == true)
 check("archive wipes buffer when archiving", vim.api.nvim_buf_is_valid(buf_arch) == false)
 
--- archive: un-archiving a live row -> returns false, not archived, buffer kept
+-- archive: un-archiving a roster-archived live row -> returns false, not archived, buffer kept
 local id_un = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa02"
 local buf_un = make_term()
+roster.add({ id = id_un, type = "pi", name = "un", cwd = "/proj/a" })
+roster.set_archived(id_un, true)
 local res2 = actions.archive({ id = id_un, name = "un", cwd = "/proj/a", live = true, bufnr = buf_un, archived = true })
 check("archive returns false when unarchiving", res2 == false)
 check("unarchive clears archived", roster.get(id_un) ~= nil and roster.get(id_un).archived == false)
