@@ -19,6 +19,12 @@ M.presets = {
     sessions_dir = vim.fn.expand("~/.local/share/opencode"),
     session = { resume_flag = "--session", prompt_flag = "--prompt" },
   },
+  vibe = {
+    cmd = "vibe",
+    backend = "vibe",
+    sessions_dir = vim.fn.expand("~/.vibe/logs/session"),
+    session = { resume_flag = "--resume", prompt_positional = true },
+  },
 }
 
 M.defaults = {

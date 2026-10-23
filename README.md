@@ -109,9 +109,10 @@ use({
 ```
 
 `setup()` is required, and **you must declare at least one agent** — there are
-no default agents. `pi`, `claude` and `opencode` are recognized keys that
-auto-fill their command and session settings, so `pi = {}` / `claude = {}` /
-`opencode = {}` is enough; pass extra fields to override. See
+no default agents. `pi`, `claude`, `opencode` and `vibe` are recognized keys
+that auto-fill their command and session settings, so `pi = {}` /
+`claude = {}` / `opencode = {}` / `vibe = {}` is enough; pass extra fields to
+override. See
 [Configuration](#configuration).
 
 ## Usage
@@ -248,7 +249,11 @@ field you set overrides the preset. A key with no matching preset (e.g. `aider
 persisted/resumed if you also give it a `session = { id_flag, name_flag,
 resume_flag }` block. CLIs that take their initial prompt as a positional
 argument (e.g. `vibe "do X"`) declare `session = { prompt_positional = true }`
-so the prompt is forwarded as the last argv element.
+so the prompt is forwarded as the last argv element. CLIs that take their
+initial prompt behind a flag instead declare `session = { prompt_flag =
+"--prompt" }`, and when several are declared the first of `id_flag` >
+`prompt_flag` > `prompt_positional` wins, so a `prompt_positional` declared
+alongside the others is ignored.
 
 `opencode = {}` (requires opencode ≥ v1.17) sessions live in opencode's SQLite
 database (`~/.local/share/opencode/opencode.db`), read through `opencode db` —
@@ -256,6 +261,10 @@ keep the binary on your `PATH`. opencode assigns session ids itself, so a
 launched agent appears immediately (as a fresh `new` row) and is bound to its
 session a moment later, once the TUI creates it; agents launched without a
 prompt bind when you send their first message.
+
+`vibe = {}` sessions live in `~/.vibe/logs/session` (Vibe's
+`[session_logging] save_dir`); Vibe assigns session ids and generates titles
+itself, and resume runs `vibe --resume <session-id>`.
 
 ### `window` — where the agent opens
 

@@ -4,6 +4,7 @@ local registry = {
   pi = require("agent-fleet.backends.pi"),
   claude = require("agent-fleet.backends.claude"),
   opencode = require("agent-fleet.backends.opencode"),
+  vibe = require("agent-fleet.backends.vibe"),
   generic = require("agent-fleet.backends.generic"),
 }
 

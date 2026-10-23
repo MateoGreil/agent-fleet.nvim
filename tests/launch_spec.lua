@@ -162,6 +162,7 @@ check(
   captured ~= nil
     and #captured == 6
     and captured[2] == "--session-id"
+    and captured[3]:match(uuid_pat) ~= nil
     and captured[4] == "--name"
     and captured[5] == "pos-id"
     and captured[6] == "do X"
