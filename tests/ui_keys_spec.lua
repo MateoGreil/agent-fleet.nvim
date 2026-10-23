@@ -81,12 +81,14 @@ end
 local cb = keymap_callbacks()
 
 -- Case 1: every required key is bound to a callback
-for _, key in ipairs({ "<CR>", "d", "x", "r", "s", "A", "S", "R", "gr" }) do
+for _, key in ipairs({ "<CR>", "d", "x", "r", "s", "X", "S", "R", "gr" }) do
   check("keymap bound: " .. key, type(cb[key]) == "function")
 end
 check("launch key a bound", type(cb["a"]) == "function")
 check("launch key i bound", type(cb["i"]) == "function")
-check("launch key I bound", type(cb["I"]) == "function")
+check("launch key A bound", type(cb["A"]) == "function")
+check("launch key X bound", type(cb["X"]) == "function")
+check("launch key I unbound", cb["I"] == nil)
 check("child session hidden before S", line_with(child_name) == nil)
 if type(cb["S"]) == "function" then
   cb["S"]()
@@ -108,45 +110,45 @@ af.launch = function(opts)
   return nil
 end
 
--- a -> launch with no prompt
+-- i -> launch with no prompt
 launch_opts = nil
 launch_calls = 0
-cb["a"]()
-check("a calls launch once", launch_calls == 1)
-check("a calls launch with no prompt", launch_opts ~= nil and launch_opts.prompt == nil)
+cb["i"]()
+check("i calls launch once", launch_calls == 1)
+check("i calls launch with no prompt", launch_opts ~= nil and launch_opts.prompt == nil)
 
 local orig_input = vim.ui.input
 
--- i -> launch with the typed prompt
+-- a -> launch with the typed prompt
 launch_opts = nil
 launch_calls = 0
 vim.ui.input = function(_, on_confirm)
   on_confirm("  do the thing  ")
 end
-cb["i"]()
-check("i calls launch once", launch_calls == 1)
-check("i passes trimmed prompt", launch_opts ~= nil and launch_opts.prompt == "do the thing")
+cb["a"]()
+check("a calls launch once", launch_calls == 1)
+check("a passes trimmed prompt", launch_opts ~= nil and launch_opts.prompt == "do the thing")
 
--- i with empty input -> launch not called
+-- a with empty input -> launch not called
 launch_calls = 0
 vim.ui.input = function(_, on_confirm)
   on_confirm("   ")
 end
-cb["i"]()
-check("i with blank input does not launch", launch_calls == 0)
+cb["a"]()
+check("a with blank input does not launch", launch_calls == 0)
 
--- i cancelled (nil) -> launch not called
+-- a cancelled (nil) -> launch not called
 launch_calls = 0
 vim.ui.input = function(_, on_confirm)
   on_confirm(nil)
 end
-cb["i"]()
-check("i cancelled does not launch", launch_calls == 0)
+cb["a"]()
+check("a cancelled does not launch", launch_calls == 0)
 
 vim.ui.input = orig_input
 af.launch = orig_launch
 
--- i in name mode (launch_input = "name"): asks for a name, launches with it
+-- a in name mode (launch_input = "name"): asks for a name, launches with it
 config.setup({ agents = { pi = { cmd = "true", sessions_dir = TMP } }, launch_input = "name" })
 launch_calls = 0
 launch_opts = nil
@@ -160,18 +162,18 @@ vim.ui.input = function(opts, on_confirm)
   name_mode_prompt = opts.prompt
   on_confirm("  fix-login  ")
 end
-cb["i"]()
-check("i name mode asks 'New agent name:'", name_mode_prompt == "New agent name: ")
-check("i name mode launches with trimmed name", launch_opts ~= nil and launch_opts.name == "fix-login")
-check("i name mode passes no prompt", launch_opts ~= nil and launch_opts.prompt == nil)
-check("i name mode launches once", launch_calls == 1)
+cb["a"]()
+check("a name mode asks 'New agent name:'", name_mode_prompt == "New agent name: ")
+check("a name mode launches with trimmed name", launch_opts ~= nil and launch_opts.name == "fix-login")
+check("a name mode passes no prompt", launch_opts ~= nil and launch_opts.prompt == nil)
+check("a name mode launches once", launch_calls == 1)
 vim.ui.input = orig_input
 af.launch = orig_launch
 
 -- restore the spec's original (prompt-mode) config for the cases below
 config.setup({ agents = { pi = { cmd = "true", sessions_dir = TMP } } })
 
--- I: launch with the agent picker
+-- A: launch with the agent picker
 launch_calls = 0
 launch_opts = nil
 local select_items
@@ -188,19 +190,19 @@ af.launch = function(opts)
   launch_opts = opts
   return nil
 end
-cb["I"]()
-check("I calls launch once", launch_calls == 1)
-check("I passes chosen agent key", launch_opts ~= nil and launch_opts.agent == "claude")
-check("I passes trimmed prompt", launch_opts ~= nil and launch_opts.prompt == "do the agent thing")
-check("I select receives agent items", select_items ~= nil and #select_items > 0)
+cb["A"]()
+check("A calls launch once", launch_calls == 1)
+check("A passes chosen agent key", launch_opts ~= nil and launch_opts.agent == "claude")
+check("A passes trimmed prompt", launch_opts ~= nil and launch_opts.prompt == "do the agent thing")
+check("A select receives agent items", select_items ~= nil and #select_items > 0)
 
--- I cancelled (nil selection) -> launch not called
+-- A cancelled (nil selection) -> launch not called
 launch_calls = 0
 vim.ui.select = function(_, _, on_choice)
   on_choice(nil)
 end
-cb["I"]()
-check("I cancelled does not launch", launch_calls == 0)
+cb["A"]()
+check("A cancelled does not launch", launch_calls == 0)
 
 vim.ui.input = orig_input
 vim.ui.select = orig_select
@@ -234,15 +236,15 @@ cb["x"]()
 check("x archives beta", roster.get(idB) ~= nil and roster.get(idB).archived == true)
 check("x hides beta from default view", line_with("beta") == nil)
 
--- Case 6: A toggles archived-section visibility; archived rows then appear
-check("gamma hidden before A", line_with("gamma") == nil)
-cb["A"]()
-check("A reveals archived gamma", line_with("gamma") ~= nil)
+-- Case 6: X toggles archived-section visibility; archived rows then appear
+check("gamma hidden before X", line_with("gamma") == nil)
+cb["X"]()
+check("X reveals archived gamma", line_with("gamma") ~= nil)
 local gline = cursor_to("gamma")
 local gr = ui.row_under_cursor()
 check("revealed archived row resolves via line_to_row", gr ~= nil and gr.id == idC)
-cb["A"]()
-check("A again hides archived gamma", line_with("gamma") == nil)
+cb["X"]()
+check("X again hides archived gamma", line_with("gamma") == nil)
 
 -- Case 7: s on a non-live row is a safe no-op (notify only, no state change)
 cursor_to("alpha")

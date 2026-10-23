@@ -248,7 +248,7 @@ local function render_empty(opts, archived_in_rows, subagents_in_rows, archived_
   local subagents_only = math.max(0, subagents_in_rows - overlap)
   local placeholder = "No agents in this directory."
   if not opts.show_archived and archived_only > 0 then
-    placeholder = placeholder .. "  (" .. archived_only .. " archived \u{2014} press A to show)"
+    placeholder = placeholder .. "  (" .. archived_only .. " archived \u{2014} press X to show)"
   end
   if not opts.show_subagents and subagents_only > 0 then
     local noun = subagents_only == 1 and "subagent" or "subagents"
@@ -266,14 +266,14 @@ local function render_empty(opts, archived_in_rows, subagents_in_rows, archived_
       .. overlap
       .. " "
       .. noun
-      .. " hidden \u{2014} press A and S to show)"
+      .. " hidden \u{2014} press X and S to show)"
   end
   local lines = {
     "agent-fleet \u{00b7} " .. cwd,
     "",
     placeholder,
     "",
-    "press  a  to launch   \u{00b7}   i  to launch with a " .. launch_input_word(opts),
+    "press  i  to launch   \u{00b7}   a  to launch with a " .. launch_input_word(opts),
   }
   local highlights = {
     { line = 0, col_start = 0, col_end = -1, hl_group = "AgentFleetHeader" },
@@ -369,8 +369,8 @@ function M.render(rows, opts)
   lines[#lines + 1] = ""
   local input_word = launch_input_word(opts)
   local legend = {
-    "  <CR> open \u{00b7} a new \u{00b7} i " .. input_word .. " \u{00b7} I pick \u{00b7} r rename \u{00b7} s stop",
-    "  d done \u{00b7} x archive \u{00b7} A archived \u{00b7} S subagents \u{00b7} R refresh",
+    "  <CR> open \u{00b7} i new \u{00b7} a " .. input_word .. " \u{00b7} A pick \u{00b7} r rename \u{00b7} s stop",
+    "  d done \u{00b7} x archive \u{00b7} X archived \u{00b7} S subagents \u{00b7} R refresh",
   }
   for _, l in ipairs(legend) do
     lines[#lines + 1] = l

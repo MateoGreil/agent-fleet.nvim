@@ -118,7 +118,7 @@ override. See
 ## Usage
 
 ```vim
-:Agent           " launch the default agent, prompting for an initial message (like the board's i)
+:Agent           " launch the default agent, prompting for an initial message (like the board's a)
 :Agent fix auth  " launch the default agent with "fix auth" as the initial prompt
 :AgentPick       " pick an agent, then prompt for an initial message
 :AgentPick fix auth  " pick an agent, then launch it with "fix auth" as the initial prompt
@@ -133,7 +133,7 @@ override. See
 ```
 
 With `launch_input = "name"` (see [Configuration](#configuration)), both
-launch inputs ask differently: `:Agent` with no argument and the board's `i`
+launch inputs ask differently: `:Agent` with no argument and the board's `a`
 key prompt for a **name** (`New agent name:`) and drop you straight into the
 agent's REPL with no seeded prompt, and `:Agent <args>` takes its arguments
 as the name.
@@ -171,10 +171,10 @@ actions are:
 | `x` | archive / unarchive |
 | `r` | rename (prompt) |
 | `s` | stop — kill the live terminal without marking it done (still resumable) |
-| `a` | launch a new agent |
-| `i` | type a prompt (or a name, with `launch_input = "name"`), then launch a new agent with it |
-| `I` | launch with the agent picker |
-| `A` | toggle the archived section |
+| `i` | launch a new agent (default agent, no input) |
+| `a` | type a prompt (or a name, with `launch_input = "name"`), then launch a new agent with it |
+| `A` | launch with the agent picker |
+| `X` | toggle the archived section |
 | `S` | toggle Pi child sessions (subagents, forks, and clones) |
 | `R` / `gr` | refresh now |
 

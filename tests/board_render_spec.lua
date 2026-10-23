@@ -179,9 +179,9 @@ check("t7 subagent hint mentions S", line_index(r7s.lines, "press S to show") ~=
 local r7ac = board.render({ archived_child_row }, { now_ms = NOW, cwd = "/d" })
 check(
   "t7 archived subagent names both required toggles",
-  line_index(r7ac.lines, "1 archived subagent hidden \u{2014} press A and S to show") ~= nil
+  line_index(r7ac.lines, "1 archived subagent hidden \u{2014} press X and S to show") ~= nil
 )
-check("t7 archived subagent does not promise A alone", line_index(r7ac.lines, "archived \u{2014} press A to show") == nil)
+check("t7 archived subagent does not promise X alone", line_index(r7ac.lines, "archived \u{2014} press X to show") == nil)
 check("t7 archived subagent does not promise S alone", line_index(r7ac.lines, "subagent hidden \u{2014} press S to show") == nil)
 
 local r7ac_a = board.render(
@@ -193,7 +193,7 @@ local r7ac_s = board.render(
   { archived_child_row },
   { now_ms = NOW, cwd = "/d", show_subagents = true }
 )
-check("t7 subagents shown still needs A", line_index(r7ac_s.lines, "press A to show") ~= nil)
+check("t7 subagents shown still needs X", line_index(r7ac_s.lines, "press X to show") ~= nil)
 local r7ac_both = board.render(
   { archived_child_row },
   { now_ms = NOW, cwd = "/d", show_archived = true, show_subagents = true }
@@ -204,21 +204,21 @@ check("t7 both toggles reveal archived subagent", line_index(r7ac_both.lines, "a
 local r8 = board.render({ live_row, idle_row }, { now_ms = NOW, cwd = "/p" })
 local lines8 = r8.lines
 check("t8 legend line1 CR open present", line_index(lines8, "<CR> open") ~= nil)
-check("t8 legend line1 I pick present", line_index(lines8, "I pick") ~= nil)
+check("t8 legend line1 A pick present", line_index(lines8, "A pick") ~= nil)
 check("t8 legend line2 d done present", line_index(lines8, "d done") ~= nil)
 check("t8 legend line2 x archive present", line_index(lines8, "x archive") ~= nil)
-check("t8 legend line2 A archived present", line_index(lines8, "A archived") ~= nil)
+check("t8 legend line2 X archived present", line_index(lines8, "X archived") ~= nil)
 check("t8 legend line2 S subagents present", line_index(lines8, "S subagents") ~= nil)
 local ddone_idx = line_index(lines8, "d done")
 check("t8 legend d-done line inert (no line_to_row entry)", ddone_idx ~= nil and r8.line_to_row[ddone_idx] == nil)
 local ddone_hl = ddone_idx and hl_for(r8.highlights, ddone_idx - 1, "AgentFleetTime") or nil
 check("t8 legend d-done line has AgentFleetTime highlight", ddone_hl ~= nil)
-check("t8 prompt-mode legend says i prompt (default)", line_index(lines8, "i prompt") ~= nil)
+check("t8 prompt-mode legend says a prompt (default)", line_index(lines8, "a prompt") ~= nil)
 
 -- Test 8b: legend + empty-board hint reflect launch_input mode
 local r8n = board.render({ live_row }, { now_ms = NOW, cwd = "/p", launch_input = "name" })
-check("t8b name-mode legend says i name", line_index(r8n.lines, "i name") ~= nil)
-check("t8b name-mode legend drops i prompt", line_index(r8n.lines, "i prompt") == nil)
+check("t8b name-mode legend says a name", line_index(r8n.lines, "a name") ~= nil)
+check("t8b name-mode legend drops a prompt", line_index(r8n.lines, "a prompt") == nil)
 
 local r7n = board.render({}, { now_ms = NOW, cwd = "/p", launch_input = "name" })
 check("t8b name-mode empty hint says with a name", line_index(r7n.lines, "to launch with a name") ~= nil)
