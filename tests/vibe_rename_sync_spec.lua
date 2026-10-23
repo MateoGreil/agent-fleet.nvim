@@ -196,5 +196,91 @@ check("board row shows adopted manual vibe title", r_man ~= nil and r_man.name =
 check("board row shows adopted auto vibe title", r_auto ~= nil and r_auto.name == "Auto Title")
 check("board row keeps protected manual roster name", r_prot ~= nil and r_prot.name == "Kept Name")
 
+-- rename_session: live chansend path sanitizes the name and defers meta adoption
+local id_job = "77777777-8888-4999-9aaa-bbbbbbbbbbbb"
+local file_job = write_meta(TMP, id_job, {
+  cwd = C,
+  title = "Job Old",
+  start = "2026-10-23T11:00:00+00:00",
+  bump = "2026-10-23T11:01:00+00:00",
+})
+local captured = {}
+local job = vim.fn.jobstart({ "cat" }, {
+  on_stdout = function(_, data)
+    for _, line in ipairs(data) do
+      captured[#captured + 1] = line
+    end
+  end,
+})
+local job_buf = vim.api.nvim_create_buf(false, true)
+agent.agents["vrs-job"] = {
+  id = 92,
+  agent = "vibe",
+  session_id = id_job,
+  cwd = C,
+  name = "Job Old",
+  bufnr = job_buf,
+  job = job,
+}
+vibe.rename_session(cfg.agents.vibe, { id = id_job, cwd = C, type = "vibe", file = file_job }, "Live\nRenamed")
+vim.wait(2000, function()
+  return #captured > 0
+end)
+local sent_out = table.concat(captured, "\n")
+check("chansend sends sanitized /rename", sent_out:match("/rename Live Renamed") ~= nil)
+check("chansend name has no embedded newline", sent_out:match("Live\n") == nil and sent_out:match("\nRenamed") == nil)
+check("chansend leaves meta.json untouched", vim.json.decode(read_meta(file_job)).title == "Job Old")
+check("chansend records pending rename", vibe._pending_renames[id_job] == "Live Renamed")
+vim.fn.jobstop(job)
+agent.agents["vrs-job"] = nil
+
+-- reconcile: a pending chansend rename blocks adoption of the stale manual title
+local id_pend = "88888888-9999-4aaa-8bbb-cccccccccccc"
+write_meta(TMP, id_pend, {
+  cwd = C,
+  title = "Manual A",
+  tsource = "manual",
+  start = "2026-10-23T11:10:00+00:00",
+  bump = "2026-10-23T11:11:00+00:00",
+})
+roster.add({ id = id_pend, type = "vibe", name = "Board B", cwd = C, auto_named = false })
+vibe._pending_renames[id_pend] = "Board B"
+local pend_buf = vim.api.nvim_create_buf(false, true)
+agent.agents["vrs-pend"] = {
+  id = 93,
+  agent = "vibe",
+  session_id = id_pend,
+  cwd = C,
+  name = "Board B",
+  bufnr = pend_buf,
+}
+vibe.list(C, { sessions_dir = TMP })
+check("pending guard blocks stale title adoption", roster.get(id_pend) ~= nil and roster.get(id_pend).name == "Board B")
+check("pending guard keeps pending entry", vibe._pending_renames[id_pend] == "Board B")
+
+write_meta(TMP, id_pend, {
+  cwd = C,
+  title = "Board B",
+  tsource = "manual",
+  start = "2026-10-23T11:10:00+00:00",
+  bump = "2026-10-23T11:12:00+00:00",
+})
+vibe.list(C, { sessions_dir = TMP })
+check("pending entry cleared once meta matches", vibe._pending_renames[id_pend] == nil)
+check("roster keeps board name after pending clears", roster.get(id_pend) ~= nil and roster.get(id_pend).name == "Board B")
+
+agent.agents["vrs-pend"] = nil
+vibe._pending_renames[id_pend] = "Board B"
+write_meta(TMP, id_pend, {
+  cwd = C,
+  title = "Manual A",
+  tsource = "manual",
+  start = "2026-10-23T11:10:00+00:00",
+  bump = "2026-10-23T11:13:00+00:00",
+})
+vibe.list(C, { sessions_dir = TMP })
+check("pending falls through to adoption without live agent", roster.get(id_pend) ~= nil and roster.get(id_pend).name == "Manual A")
+check("pending cleared without live agent", vibe._pending_renames[id_pend] == nil)
+
 vim.fn.writefile(out, os.getenv("AGENT_FLEET_TEST_OUT"))
 vim.cmd("qa!")

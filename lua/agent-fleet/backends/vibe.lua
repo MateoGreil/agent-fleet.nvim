@@ -2,6 +2,9 @@ local M = {}
 
 M.has_disk = true
 
+local pending_renames = {}
+M._pending_renames = pending_renames
+
 local BIND_TOLERANCE_MS = 5000
 
 local function live_agent_for(session_id)
@@ -139,17 +142,24 @@ function M._reconcile_titles(entries)
   for _, row in ipairs(entries) do
     local title = row.session_title
     if title then
-      local entry = roster.get(row.id)
-      if entry and entry.name ~= title and (row.title_source == "manual" or entry.auto_named ~= false) then
-        local actions = require("agent-fleet.actions")
-        local live = live_agent_for(row.id)
-        local arow
-        if live and live.bufnr and vim.api.nvim_buf_is_valid(live.bufnr) then
-          arow = { id = row.id, name = live.name, cwd = live.cwd, type = "vibe", live = true, bufnr = live.bufnr }
-        else
-          arow = { id = row.id, name = entry.name, cwd = entry.cwd, type = "vibe", live = false }
+      local pending = pending_renames[row.id]
+      local pending_live = pending ~= nil and title ~= pending and live_agent_for(row.id) ~= nil
+      if pending ~= nil and not pending_live then
+        pending_renames[row.id] = nil
+      end
+      if not pending_live then
+        local entry = roster.get(row.id)
+        if entry and entry.name ~= title and (row.title_source == "manual" or entry.auto_named ~= false) then
+          local actions = require("agent-fleet.actions")
+          local live = live_agent_for(row.id)
+          local arow
+          if live and live.bufnr and vim.api.nvim_buf_is_valid(live.bufnr) then
+            arow = { id = row.id, name = live.name, cwd = live.cwd, type = "vibe", live = true, bufnr = live.bufnr }
+          else
+            arow = { id = row.id, name = entry.name, cwd = entry.cwd, type = "vibe", live = false }
+          end
+          actions.rename(arow, title, { auto = row.title_source ~= "manual", from_sync = true })
         end
-        actions.rename(arow, title, { auto = row.title_source ~= "manual", from_sync = true })
       end
     end
   end
@@ -161,8 +171,10 @@ end
 function M.rename_session(def, row, new_name)
   local live = live_agent_for(row.id)
   if live and live.job and live.bufnr and vim.api.nvim_buf_is_valid(live.bufnr) then
-    local sent = pcall(vim.fn.chansend, live.job, "/rename " .. new_name .. "\r")
+    local name = new_name:gsub("%c", " ")
+    local sent = pcall(vim.fn.chansend, live.job, "/rename " .. name .. "\r")
     if sent then
+      pending_renames[row.id] = name
       return
     end
   end
@@ -170,6 +182,7 @@ function M.rename_session(def, row, new_name)
   local path = row.file or M.session_file(row.cwd, def, row.id)
   local meta = path and read_meta(path)
   if not meta then
+    vim.notify("agent-fleet: rename failed, unreadable session meta for " .. row.id, vim.log.levels.WARN)
     return
   end
   meta.title = new_name
@@ -177,11 +190,15 @@ function M.rename_session(def, row, new_name)
   local tmp = path .. ".agent-fleet.tmp"
   local fd = io.open(tmp, "w")
   if not fd then
+    vim.notify("agent-fleet: rename failed, cannot write session meta for " .. row.id, vim.log.levels.WARN)
     return
   end
   fd:write(vim.json.encode(meta))
   fd:close()
-  os.rename(tmp, path)
+  if not os.rename(tmp, path) then
+    pcall(os.remove, tmp)
+    vim.notify("agent-fleet: rename failed, cannot replace session meta for " .. row.id, vim.log.levels.WARN)
+  end
 end
 
 function M.list(cwd, def)
