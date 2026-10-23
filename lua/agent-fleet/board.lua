@@ -106,7 +106,7 @@ function M.rows(opts)
     end
 
     local done = roster_entry and roster_entry.done or false
-    local archived = roster_entry and roster_entry.archived or false
+    local archived = (roster_entry and roster_entry.archived) or (disk_entry and disk_entry.archived) or false
 
     local created_at = 0
     if disk_entry then

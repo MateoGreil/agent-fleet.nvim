@@ -147,6 +147,7 @@ function M.list(cwd, def)
           title = type(meta.title) == "string" and meta.title or ("vibe:" .. meta.session_id:sub(1, 8)),
           state = session_state(meta),
           file = file,
+          archived = (not is_null(meta.archived_at) and meta.archived_at ~= false) or nil,
         }
       end
     end

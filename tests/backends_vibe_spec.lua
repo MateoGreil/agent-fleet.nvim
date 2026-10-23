@@ -40,6 +40,10 @@ end
 local function write_meta(root, id, opts)
   local dir = root .. "/unified/" .. id
   vim.fn.mkdir(dir, "p")
+  local arch = ""
+  if opts.arch then
+    arch = ',"archived_at":' .. (opts.arch == "null" and "null" or ('"' .. opts.arch .. '"'))
+  end
   local json = '{"session_id":"' .. id .. '"'
     .. ',"parent_session_id":' .. (opts.parent and ('"' .. opts.parent .. '"') or "null")
     .. ',"start_time":' .. (opts.start and ('"' .. opts.start .. '"') or "null")
@@ -47,6 +51,7 @@ local function write_meta(root, id, opts)
     .. ',"origin_directory":"' .. opts.cwd .. '"'
     .. ',"title":' .. (opts.title and ('"' .. opts.title .. '"') or "null")
     .. ',"bumped_at":' .. (opts.bump and ('"' .. opts.bump .. '"') or "null")
+    .. arch
     .. "}"
   vim.fn.writefile({ json }, dir .. "/meta.json")
   return dir .. "/meta.json"
@@ -234,6 +239,55 @@ agent.agents["vb4"] = nil
 check(
   "bind: roster holds exactly bound and pre-claimed sessions",
   #roster.list({ cwd = bind_cwd, include_archived = true }) == 3
+)
+
+local arch_dir = vim.fn.tempname()
+vim.fn.mkdir(arch_dir, "p")
+local arch_cwd = "/test/vibe-archived"
+local uuid_k = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"
+local uuid_l = "cccccccc-cccc-4ccc-8ccc-cccccccccccc"
+local uuid_m = "dddddddd-dddd-4ddd-8ddd-dddddddddddd"
+write_meta(arch_dir, uuid_k, {
+  cwd = arch_cwd,
+  title = "Still active",
+  start = "2026-10-22T15:10:00+00:00",
+  bump = "2026-10-22T15:10:00+00:00",
+  arch = "null",
+})
+write_meta(arch_dir, uuid_l, {
+  cwd = arch_cwd,
+  title = "Packed up",
+  start = "2026-10-22T15:11:00+00:00",
+  bump = "2026-10-22T15:11:00+00:00",
+  arch = "2026-10-23T09:00:00+00:00",
+})
+write_meta(arch_dir, uuid_m, {
+  cwd = arch_cwd,
+  title = "Legacy meta",
+  start = "2026-10-22T15:12:00+00:00",
+  bump = "2026-10-22T15:12:00+00:00",
+})
+local arch_rows = vibe.list(arch_cwd, { sessions_dir = arch_dir })
+local function arch_row(rid)
+  for _, r in ipairs(arch_rows) do
+    if r.id == rid then
+      return r
+    end
+  end
+  return nil
+end
+check("archived: list returns 3 sessions", #arch_rows == 3)
+check(
+  "archived: timestamp meta marks row archived",
+  arch_row(uuid_l) ~= nil and arch_row(uuid_l).archived == true
+)
+check(
+  "archived: json null meta leaves row archived nil",
+  arch_row(uuid_k) ~= nil and arch_row(uuid_k).archived == nil
+)
+check(
+  "archived: absent field leaves row archived nil",
+  arch_row(uuid_m) ~= nil and arch_row(uuid_m).archived == nil
 )
 
 vim.fn.writefile(out, os.getenv("AGENT_FLEET_TEST_OUT"))
