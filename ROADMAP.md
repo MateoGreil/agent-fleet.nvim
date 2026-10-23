@@ -98,6 +98,15 @@ ships and what's planned. For the user-facing docs, see [README.md](README.md).
   their Vibe-generated title, and sessions archived on Vibe's side land in
   the board's ARCHIVED section. Sub-agent sessions stay hidden, parity with
   pi child sessions (PR #12).
+- **[x] Two-way rename sync with Vibe sessions** — the board name and the Vibe
+  session title are one name. Renaming on the board (`r` / `:AgentRename`)
+  renames the Vibe session too: a live agent is renamed through its own
+  terminal (`/rename`), a disk-only one by rewriting its `meta.json` title
+  (`title_source = manual`). In the other direction, the vibe backend
+  reconciles on every board refresh: a `/rename` done inside Vibe (manual
+  title) always lands on the board, and Vibe's auto-generated titles are
+  adopted for machine-named agents — a name set manually on either side wins
+  over Vibe's auto titles and is never clobbered by them.
 
 ## Planned
 

@@ -4,6 +4,15 @@ M.has_disk = true
 
 local BIND_TOLERANCE_MS = 5000
 
+local function live_agent_for(session_id)
+  for _, entry in pairs(require("agent-fleet.agent").agents) do
+    if entry.session_id == session_id then
+      return entry
+    end
+  end
+  return nil
+end
+
 local function parse_iso_ms(ts)
   if type(ts) ~= "string" then
     return nil
@@ -121,6 +130,60 @@ function M._bind_sessions(cwd, rows)
   end
 end
 
+--- Adopt vibe session titles into the roster so a `/rename` (or an
+--- auto-generated title) shows up on the board. A manual roster name
+--- (auto_named == false) wins over vibe's automatic titles; a manual
+--- vibe title always wins.
+function M._reconcile_titles(entries)
+  local roster = require("agent-fleet.roster")
+  for _, row in ipairs(entries) do
+    local title = row.session_title
+    if title then
+      local entry = roster.get(row.id)
+      if entry and entry.name ~= title and (row.title_source == "manual" or entry.auto_named ~= false) then
+        local actions = require("agent-fleet.actions")
+        local live = live_agent_for(row.id)
+        local arow
+        if live and live.bufnr and vim.api.nvim_buf_is_valid(live.bufnr) then
+          arow = { id = row.id, name = live.name, cwd = live.cwd, type = "vibe", live = true, bufnr = live.bufnr }
+        else
+          arow = { id = row.id, name = entry.name, cwd = entry.cwd, type = "vibe", live = false }
+        end
+        actions.rename(arow, title, { auto = row.title_source ~= "manual", from_sync = true })
+      end
+    end
+  end
+end
+
+--- Rename a vibe session so both sides stay in sync: a live session is
+--- renamed through its own terminal (`/rename`), a disk-only session by
+--- rewriting its meta.json title.
+function M.rename_session(def, row, new_name)
+  local live = live_agent_for(row.id)
+  if live and live.job and live.bufnr and vim.api.nvim_buf_is_valid(live.bufnr) then
+    local sent = pcall(vim.fn.chansend, live.job, "/rename " .. new_name .. "\r")
+    if sent then
+      return
+    end
+  end
+
+  local path = row.file or M.session_file(row.cwd, def, row.id)
+  local meta = path and read_meta(path)
+  if not meta then
+    return
+  end
+  meta.title = new_name
+  meta.title_source = "manual"
+  local tmp = path .. ".agent-fleet.tmp"
+  local fd = io.open(tmp, "w")
+  if not fd then
+    return
+  end
+  fd:write(vim.json.encode(meta))
+  fd:close()
+  os.rename(tmp, path)
+end
+
 function M.list(cwd, def)
   local dir = def.sessions_dir .. "/unified"
   if vim.fn.isdirectory(dir) ~= 1 then
@@ -139,12 +202,15 @@ function M.list(cwd, def)
         and is_null(meta.parent_session_id)
         and meta.origin_directory == cwd
       then
+        local real_title = type(meta.title) == "string" and meta.title ~= "" and meta.title or nil
         entries[#entries + 1] = {
           id = meta.session_id,
           cwd = meta.origin_directory,
           created_at = parse_iso_ms(meta.start_time) or 0,
           last_activity = parse_iso_ms(meta.bumped_at) or 0,
-          title = type(meta.title) == "string" and meta.title or ("vibe:" .. meta.session_id:sub(1, 8)),
+          title = real_title or ("vibe:" .. meta.session_id:sub(1, 8)),
+          session_title = real_title,
+          title_source = type(meta.title_source) == "string" and meta.title_source or "auto",
           state = session_state(meta),
           file = file,
           archived = (not is_null(meta.archived_at) and meta.archived_at ~= false) or nil,
@@ -158,6 +224,7 @@ function M.list(cwd, def)
   end)
 
   M._bind_sessions(cwd, entries)
+  M._reconcile_titles(entries)
 
   return entries
 end

@@ -266,7 +266,14 @@ prompt bind when you send their first message.
 `[session_logging] save_dir`); Vibe assigns session ids and generates titles
 itself, so a launched agent appears immediately and is bound to its session a
 moment later, once Vibe writes it. Resume runs `vibe --resume <session-id>`;
-sessions archived on Vibe's side show in the board's ARCHIVED section.
+sessions archived on Vibe's side show in the board's ARCHIVED section. Names
+are shared two-way with the Vibe session title: renaming on the board (`r` /
+`:AgentRename`) renames the Vibe session — a live one through its own terminal
+(`/rename`), a disk-only one by rewriting its `meta.json` title — and a
+`/rename` typed inside a Vibe session (or a title Vibe generates) shows up on
+the board at the next refresh. A name you set manually on either side always
+wins over Vibe's automatically generated titles; only machine-named agents
+follow them.
 
 ### `window` — where the agent opens
 

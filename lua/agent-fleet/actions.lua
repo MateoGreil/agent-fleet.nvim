@@ -125,6 +125,16 @@ function M.rename(row, new_name, opts)
     end
     pcall(vim.api.nvim_buf_set_name, row.bufnr, "agent:" .. new_name)
   end
+
+  if not (opts and opts.from_sync) and row.type then
+    local backend = require("agent-fleet.backends").resolve(row.type)
+    if backend.rename_session then
+      local def = require("agent-fleet.config").get().agents[row.type]
+      if def then
+        backend.rename_session(def, row, new_name)
+      end
+    end
+  end
 end
 
 return M
