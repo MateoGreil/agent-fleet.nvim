@@ -1,7 +1,9 @@
 vim.opt.runtimepath:append(vim.fn.getcwd())
 
+local agent = require("agent-fleet.agent")
 local backends = require("agent-fleet.backends")
 local config = require("agent-fleet.config")
+local roster = require("agent-fleet.roster")
 
 local out = {}
 local function check(name, cond)
@@ -141,6 +143,98 @@ check("session_file missing returns nil", missing == nil)
 
 local empty = vibe.list(cwd, { sessions_dir = "/nonexistent-vibe-sessions" })
 check("list on nonexistent sessions_dir returns empty table", type(empty) == "table" and #empty == 0)
+
+local function roster_count(rcwd, id)
+  local n = 0
+  for _, entry in ipairs(roster.list({ cwd = rcwd, include_archived = true })) do
+    if entry.id == id then
+      n = n + 1
+    end
+  end
+  return n
+end
+
+local bind_dir = vim.fn.tempname()
+vim.fn.mkdir(bind_dir, "p")
+local bind_cwd = "/test/bind-project"
+local bind_spawn_ms = utc_ms(2026, 10, 22, 15, 0, 0, 0)
+local bind_buf = vim.api.nvim_create_buf(false, true)
+local uuid_g = "77777777-7777-4777-8777-777777777777"
+local uuid_h = "88888888-8888-4888-8888-888888888888"
+local uuid_i = "99999999-9999-4999-8999-999999999999"
+local uuid_j = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"
+
+local function fake_vibe_agent(key, num, name)
+  agent.agents[key] = {
+    id = num,
+    agent = "vibe",
+    session_id = nil,
+    cwd = bind_cwd,
+    name = name,
+    spawned_ms = bind_spawn_ms,
+    bufnr = bind_buf,
+  }
+end
+
+write_meta(bind_dir, uuid_g, {
+  cwd = bind_cwd,
+  start = "2026-10-22T15:00:02+00:00",
+  bump = "2026-10-22T15:00:02+00:00",
+})
+fake_vibe_agent("vb1", 71, "vibe-live-one")
+vibe.list(bind_cwd, { sessions_dir = bind_dir })
+check("bind: session within tolerance binds agent", agent.agents["vb1"].session_id == uuid_g)
+local bound_entry = roster.get(uuid_g)
+check("bind: roster entry created", bound_entry ~= nil)
+check("bind: roster entry carries agent name", bound_entry ~= nil and bound_entry.name == "vibe-live-one")
+check("bind: roster entry type vibe", bound_entry ~= nil and bound_entry.type == "vibe")
+check("bind: roster entry cwd", bound_entry ~= nil and bound_entry.cwd == bind_cwd)
+
+vibe.list(bind_cwd, { sessions_dir = bind_dir })
+check("bind: repeat list keeps agent bound", agent.agents["vb1"].session_id == uuid_g)
+check("bind: repeat list adds no duplicate roster entry", roster_count(bind_cwd, uuid_g) == 1)
+agent.agents["vb1"] = nil
+
+write_meta(bind_dir, uuid_h, {
+  cwd = bind_cwd,
+  start = "2026-10-22T14:59:53+00:00",
+  bump = "2026-10-22T14:59:53+00:00",
+})
+fake_vibe_agent("vb2", 72, "vibe-live-two")
+vibe.list(bind_cwd, { sessions_dir = bind_dir })
+check("bind: session older than tolerance not bound", agent.agents["vb2"].session_id == nil)
+check("bind: out-of-tolerance session not rostered", roster.get(uuid_h) == nil)
+agent.agents["vb2"] = nil
+
+write_meta(bind_dir, uuid_i, {
+  cwd = bind_cwd,
+  start = "2026-10-22T14:59:55+00:00",
+  bump = "2026-10-22T14:59:55+00:00",
+})
+fake_vibe_agent("vb3", 73, "vibe-live-three")
+vibe.list(bind_cwd, { sessions_dir = bind_dir })
+check("bind: session exactly at tolerance edge binds", agent.agents["vb3"].session_id == uuid_i)
+local edge_entry = roster.get(uuid_i)
+check("bind: tolerance edge roster entry has agent name", edge_entry ~= nil and edge_entry.name == "vibe-live-three")
+agent.agents["vb3"] = nil
+
+write_meta(bind_dir, uuid_j, {
+  cwd = bind_cwd,
+  start = "2026-10-22T15:00:01+00:00",
+  bump = "2026-10-22T15:00:01+00:00",
+})
+roster.add({ id = uuid_j, type = "vibe", name = "pre-claimed", cwd = bind_cwd })
+fake_vibe_agent("vb4", 74, "vibe-live-four")
+vibe.list(bind_cwd, { sessions_dir = bind_dir })
+check("bind: already rostered session not bound to new agent", agent.agents["vb4"].session_id == nil)
+check("bind: already rostered session not duplicated", roster_count(bind_cwd, uuid_j) == 1)
+check("bind: pre-claimed roster name preserved", roster.get(uuid_j) ~= nil and roster.get(uuid_j).name == "pre-claimed")
+agent.agents["vb4"] = nil
+
+check(
+  "bind: roster holds exactly bound and pre-claimed sessions",
+  #roster.list({ cwd = bind_cwd, include_archived = true }) == 3
+)
 
 vim.fn.writefile(out, os.getenv("AGENT_FLEET_TEST_OUT"))
 vim.cmd("qa!")

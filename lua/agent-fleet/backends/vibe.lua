@@ -2,6 +2,8 @@ local M = {}
 
 M.has_disk = true
 
+local BIND_TOLERANCE_MS = 5000
+
 local function parse_iso_ms(ts)
   if type(ts) ~= "string" then
     return nil
@@ -60,6 +62,65 @@ local function read_meta(file)
   return decoded
 end
 
+function M._bind_sessions(cwd, rows)
+  local agent_mod = require("agent-fleet.agent")
+  local roster = require("agent-fleet.roster")
+
+  local bound_ids = {}
+  local unbound = {}
+  for _, entry in pairs(agent_mod.agents) do
+    if type(entry.session_id) == "string" then
+      bound_ids[entry.session_id] = true
+    elseif
+      entry.agent == "vibe"
+      and entry.cwd == cwd
+      and type(entry.spawned_ms) == "number"
+    then
+      unbound[#unbound + 1] = entry
+    end
+  end
+  if #unbound == 0 then
+    return
+  end
+  table.sort(unbound, function(x, y)
+    return x.spawned_ms < y.spawned_ms
+  end)
+
+  local claimed = {}
+  for _, entry in ipairs(roster.list({ cwd = cwd, include_archived = true })) do
+    claimed[entry.id] = true
+  end
+
+  local candidates = {}
+  for _, row in ipairs(rows) do
+    if not bound_ids[row.id] and not claimed[row.id] then
+      candidates[#candidates + 1] = row
+    end
+  end
+  table.sort(candidates, function(x, y)
+    return x.created_at < y.created_at
+  end)
+
+  local next_agent = 1
+  for _, row in ipairs(candidates) do
+    local entry = unbound[next_agent]
+    if not entry then
+      break
+    end
+    if row.created_at >= entry.spawned_ms - BIND_TOLERANCE_MS then
+      entry.session_id = row.id
+      roster.add({
+        id = row.id,
+        type = "vibe",
+        name = entry.name,
+        cwd = entry.cwd,
+        auto_named = entry.auto_named or false,
+      })
+      next_agent = next_agent + 1
+    end
+  end
+end
+
 function M.list(cwd, def)
   local dir = def.sessions_dir .. "/unified"
   if vim.fn.isdirectory(dir) ~= 1 then
@@ -94,6 +155,8 @@ function M.list(cwd, def)
   table.sort(entries, function(a, b)
     return a.created_at < b.created_at
   end)
+
+  M._bind_sessions(cwd, entries)
 
   return entries
 end
