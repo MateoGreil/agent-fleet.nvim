@@ -113,5 +113,21 @@ check("rename empty name no-op", roster.get(id_ren).name == "new name")
 actions.rename({ id = id_ren, name = "new name", cwd = "/proj/r", live = true, bufnr = buf_ren }, nil)
 check("rename nil name no-op", roster.get(id_ren).name == "new name")
 
+-- rename: unbound live row -> in-memory agent renamed, buffer var and buffer name updated
+local buf_unb = make_term()
+agent.agents[41] = { id = 41, session_id = nil, bufnr = buf_unb, cwd = "/proj/r", name = "unbound-old", auto_named = true }
+vim.b[buf_unb].agent_fleet = { id = 41 }
+actions.rename(
+  { id = "live-41", name = "unbound-old", cwd = "/proj/r", live = true, bufnr = buf_unb, unbound = true },
+  "unbound-new"
+)
+check("rename unbound updates agent name", agent.agents[41].name == "unbound-new")
+check("rename unbound clears agent auto_named", agent.agents[41].auto_named == false)
+check(
+  "rename unbound updates buffer var name",
+  vim.b[buf_unb].agent_fleet ~= nil and vim.b[buf_unb].agent_fleet.name == "unbound-new"
+)
+check("rename unbound renames buffer", vim.endswith(vim.api.nvim_buf_get_name(buf_unb), "agent:unbound-new"))
+
 vim.fn.writefile(out, os.getenv("AGENT_FLEET_TEST_OUT"))
 vim.cmd("qa!")

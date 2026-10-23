@@ -241,6 +241,28 @@ check(
   #roster.list({ cwd = bind_cwd, include_archived = true }) == 3
 )
 
+local actions = require("agent-fleet.actions")
+local uuid_n = "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee"
+write_meta(bind_dir, uuid_n, {
+  cwd = bind_cwd,
+  start = "2026-10-22T15:00:03+00:00",
+  bump = "2026-10-22T15:00:03+00:00",
+})
+fake_vibe_agent("vb5", 75, "vibe-live-five")
+agent.agents["vb5"].auto_named = true
+actions.rename(
+  { id = "live-75", name = "vibe-live-five", cwd = bind_cwd, live = true, bufnr = bind_buf, unbound = true },
+  "renamed-five"
+)
+check("bind: manual rename updates unbound agent name", agent.agents["vb5"].name == "renamed-five")
+check("bind: manual rename clears unbound agent auto_named", agent.agents["vb5"].auto_named == false)
+vibe.list(bind_cwd, { sessions_dir = bind_dir })
+check("bind: renamed agent binds to session", agent.agents["vb5"].session_id == uuid_n)
+local renamed_entry = roster.get(uuid_n)
+check("bind: roster entry carries renamed name", renamed_entry ~= nil and renamed_entry.name == "renamed-five")
+check("bind: roster entry auto_named false after manual rename", renamed_entry ~= nil and renamed_entry.auto_named == false)
+agent.agents["vb5"] = nil
+
 local arch_dir = vim.fn.tempname()
 vim.fn.mkdir(arch_dir, "p")
 local arch_cwd = "/test/vibe-archived"

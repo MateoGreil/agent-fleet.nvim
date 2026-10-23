@@ -336,10 +336,6 @@ local function handle_rename()
   vim.ui.input({ prompt = "Rename agent: ", default = row.name }, function(input)
     input = input and vim.trim(input)
     if input and input ~= "" then
-      if row.unbound then
-        notify("session not created yet \u{2014} " .. row.name)
-        return
-      end
       require("agent-fleet.actions").rename(row, input)
       M.refresh()
       notify("renamed \u{2014} " .. input)

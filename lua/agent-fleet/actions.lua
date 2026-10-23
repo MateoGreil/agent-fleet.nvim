@@ -79,13 +79,29 @@ function M.archive(row)
 end
 
 function M.rename(row, new_name, opts)
-  if row.unbound then
-    return nil
-  end
   if new_name == nil or new_name == "" then
     return
   end
   local manual = not (opts and opts.auto)
+  if row.unbound then
+    if row.bufnr and vim.api.nvim_buf_is_valid(row.bufnr) then
+      for _, a in pairs(require("agent-fleet.agent").agents) do
+        if ("live-" .. tostring(a.id)) == row.id or a.bufnr == row.bufnr then
+          a.name = new_name
+          if manual then
+            a.auto_named = false
+          end
+        end
+      end
+      local meta = vim.b[row.bufnr].agent_fleet
+      if type(meta) == "table" then
+        meta.name = new_name
+        vim.b[row.bufnr].agent_fleet = meta
+      end
+      pcall(vim.api.nvim_buf_set_name, row.bufnr, "agent:" .. new_name)
+    end
+    return
+  end
   local roster = require("agent-fleet.roster")
   roster.ensure({ id = row.id, type = row.type or "pi", name = row.name, cwd = row.cwd })
   roster.set_name(row.id, new_name)
