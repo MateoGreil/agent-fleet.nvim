@@ -1,5 +1,21 @@
 local M = {}
 
+function M.after_select_teardown(fn)
+  local timeout_ms = 500
+  local deadline = vim.uv.now() + timeout_ms
+  local function attempt()
+    local mode = vim.api.nvim_get_mode().mode
+    if mode == "t" or mode == "nt" then
+      if vim.uv.now() < deadline then
+        vim.defer_fn(attempt, 10)
+        return
+      end
+    end
+    fn()
+  end
+  attempt()
+end
+
 local seeded = false
 
 local function fallback_uuid()

@@ -42,7 +42,9 @@ vim.api.nvim_create_user_command("AgentResume", function()
     end,
   }, function(choice)
     if choice then
-      require("agent-fleet").resume(choice.id)
+      require("agent-fleet.util").after_select_teardown(function()
+        require("agent-fleet").resume(choice.id)
+      end)
     end
   end)
 end, { desc = "agent-fleet: resume a past agent (current directory)" })
@@ -62,7 +64,9 @@ vim.api.nvim_create_user_command("Agents", function()
     end,
   }, function(choice)
     if choice then
-      require("agent-fleet.agent").resume_session({ id = choice.id, cwd = choice.cwd, type = choice.type })
+      require("agent-fleet.util").after_select_teardown(function()
+        require("agent-fleet.agent").resume_session({ id = choice.id, cwd = choice.cwd, type = choice.type })
+      end)
     end
   end)
 end, { desc = "agent-fleet: list & switch agents of the current directory" })
@@ -227,7 +231,9 @@ vim.api.nvim_create_user_command("AgentRename", function(opts)
     end,
   }, function(chosen)
     if chosen then
-      prompt(chosen)
+      require("agent-fleet.util").after_select_teardown(function()
+        prompt(chosen)
+      end)
     end
   end)
 end, {

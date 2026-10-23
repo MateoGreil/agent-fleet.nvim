@@ -4,21 +4,6 @@ local function name_mode()
   return require("agent-fleet.config").get().launch_input == "name"
 end
 
-local function after_select_teardown(fn)
-  local timeout_ms = 500
-  local deadline = vim.uv.now() + timeout_ms
-  local function attempt()
-    local mode = vim.api.nvim_get_mode().mode
-    if mode == "t" or mode == "nt" then
-      if vim.uv.now() < deadline then
-        vim.defer_fn(attempt, 10)
-        return
-      end
-    end
-    fn()
-  end
-  attempt()
-end
 
 local function pick(on_choice)
   local cfg = require("agent-fleet.config").get()
@@ -80,7 +65,7 @@ end
 function M.interactive_pick()
   pick(function(choice)
     if choice then
-      after_select_teardown(function()
+      require("agent-fleet.util").after_select_teardown(function()
         if name_mode() then
           interactive_launch("name", "New agent name: ", choice)
         else
@@ -98,7 +83,7 @@ function M.pick_from_args(args)
   end
   pick(function(choice)
     if choice then
-      after_select_teardown(function()
+      require("agent-fleet.util").after_select_teardown(function()
         if name_mode() then
           require("agent-fleet").launch({ agent = choice, name = value })
         else
